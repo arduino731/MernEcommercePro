@@ -6,7 +6,20 @@ import { createLinkToken, exchangePublicToken, createPayment, getPaymentStatus }
 import passport from "passport";
 import session from "express-session";
 import { z } from "zod";
-import { insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertReviewSchema } from "@shared/schema";
+import { insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertReviewSchema } from "@shared/models";
+import bcrypt from 'bcrypt';
+
+// Declare augmented Express types
+declare global {
+  namespace Express {
+    interface User {
+      id: string;
+      name?: string;
+      email: string;
+      isAdmin?: boolean;
+    }
+  }
+}
 import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -235,9 +248,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get product by ID
   app.get("/api/products/:id", async (req, res) => {
     try {
-      const productId = parseInt(req.params.id);
+      const productId = req.params.id;
       
-      if (isNaN(productId)) {
+      if (!productId) {
         return res.status(400).json({ message: "Invalid product ID" });
       }
       
@@ -256,7 +269,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user info for each review
       const reviewsWithUserInfo = await Promise.all(
         reviews.map(async (review) => {
-          const user = await storage.getUser(review.userId);
+          const userId = typeof review.userId === 'object' 
+            ? review.userId.toString() 
+            : review.userId;
+            
+          const user = await storage.getUser(userId);
           return {
             ...review,
             author: user ? user.name : "Anonymous",
@@ -266,17 +283,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       // Get related products (products in the same category, excluding the current product)
+      const categoryId = product.categoryId ? 
+        (typeof product.categoryId === 'object' ? product.categoryId.toString() : product.categoryId)
+        : undefined;
+        
       const relatedProducts = await storage.getProducts({
-        category: product.categoryId?.toString(),
+        category: categoryId,
         limit: 4,
       });
       
       const filteredRelatedProducts = relatedProducts.filter(
-        (p) => p.id !== productId
+        (p) => p.id !== product.id
       );
       
       res.json({
-        ...product,
+        ...product.toObject(),
         variants,
         reviews: reviewsWithUserInfo,
         relatedProducts: filteredRelatedProducts,
@@ -290,9 +311,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add product review
   app.post("/api/products/:id/reviews", isAuthenticated, async (req, res) => {
     try {
-      const productId = parseInt(req.params.id);
+      const productId = req.params.id;
       
-      if (isNaN(productId)) {
+      if (!productId) {
         return res.status(400).json({ message: "Invalid product ID" });
       }
       
@@ -306,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reviewSchema = insertReviewSchema.safeParse({
         ...req.body,
         productId,
-        userId: req.user.id,
+        userId: req.user?.id,
       });
       
       if (!reviewSchema.success) {

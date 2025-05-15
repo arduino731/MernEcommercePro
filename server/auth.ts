@@ -40,12 +40,12 @@ export const configurePassport = () => {
   );
   
   // Serialize user to the session
-  passport.serializeUser((user: User, done) => {
+  passport.serializeUser((user: any, done) => {
     done(null, user.id);
   });
   
   // Deserialize user from the session
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
       if (!user) {
@@ -53,7 +53,8 @@ export const configurePassport = () => {
       }
       
       // Don't send password to the client
-      const { password, ...userWithoutPassword } = user;
+      const userObj = user.toObject();
+      const { password, ...userWithoutPassword } = userObj;
       done(null, userWithoutPassword);
     } catch (error) {
       done(error);
