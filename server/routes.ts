@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./mongoose-storage";
 import { configurePassport, hashPassword, isAuthenticated, isAdmin } from "./auth";
 import { createLinkToken, exchangePublicToken, createPayment, getPaymentStatus } from "./plaid";
 import passport from "passport";

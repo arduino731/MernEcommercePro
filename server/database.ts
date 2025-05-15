@@ -1,15 +1,25 @@
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { log } from './vite';
 
-// MongoDB connection string
-// Using memory server for development by default
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopmern';
+let mongoServer: MongoMemoryServer;
 
 // Connect to MongoDB
 export const connectToDatabase = async (): Promise<void> => {
   try {
-    await mongoose.connect(MONGODB_URI);
-    log('Connected to MongoDB', 'database');
+    // Check if we're in production and have a MongoDB URI
+    if (process.env.NODE_ENV === 'production' && process.env.MONGODB_URI) {
+      await mongoose.connect(process.env.MONGODB_URI);
+    } else {
+      // For development, use a MongoDB Memory Server
+      mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+      
+      await mongoose.connect(mongoUri);
+      log(`Connected to MongoDB Memory Server: ${mongoUri}`, 'database');
+    }
+    
+    log('MongoDB connection established', 'database');
   } catch (error) {
     log(`MongoDB connection error: ${error}`, 'database');
     process.exit(1);
@@ -20,6 +30,13 @@ export const connectToDatabase = async (): Promise<void> => {
 export const disconnectFromDatabase = async (): Promise<void> => {
   try {
     await mongoose.disconnect();
+    
+    // If we're using MongoDB Memory Server, stop it
+    if (mongoServer) {
+      await mongoServer.stop();
+      log('MongoDB Memory Server stopped', 'database');
+    }
+    
     log('Disconnected from MongoDB', 'database');
   } catch (error) {
     log(`MongoDB disconnection error: ${error}`, 'database');

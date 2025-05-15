@@ -1,8 +1,8 @@
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import bcrypt from 'bcrypt';
-import { storage } from './storage';
-import { User } from '@shared/schema';
+import { storage } from './mongoose-storage';
+import { User } from '@shared/models';
 
 // Configure Passport with a local strategy
 export const configurePassport = () => {

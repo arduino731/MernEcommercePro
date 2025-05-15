@@ -2,9 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { connectToDatabase } from "./database";
+import { storage } from "./mongoose-storage";
 
-// Connect to MongoDB database
-connectToDatabase();
+// Connect to MongoDB database and initialize data
+(async () => {
+  await connectToDatabase();
+  await storage.initializeData();
+})();
 
 const app = express();
 app.use(express.json());

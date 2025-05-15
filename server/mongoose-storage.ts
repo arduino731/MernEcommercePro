@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import {
   User, InsertUser,
   Category, InsertCategory,
@@ -273,9 +274,9 @@ export class MongooseStorage implements IStorage {
     
     // Map category IDs
     const categoryMap: Record<string, mongoose.Types.ObjectId> = {
-      "smartphones": categoryDocs[0]._id,
-      "audio": categoryDocs[1]._id,
-      "wearables": categoryDocs[2]._id
+      "smartphones": categoryDocs[0]._id as mongoose.Types.ObjectId,
+      "audio": categoryDocs[1]._id as mongoose.Types.ObjectId,
+      "wearables": categoryDocs[2]._id as mongoose.Types.ObjectId
     };
     
     // Add sample products
@@ -380,16 +381,16 @@ export class MongooseStorage implements IStorage {
     
     // Add product variants
     const variants: InsertProductVariant[] = [
-      { productId: productDocs[0]._id.toString(), name: "Black", inStock: true },
-      { productId: productDocs[0]._id.toString(), name: "White", inStock: true },
-      { productId: productDocs[0]._id.toString(), name: "Blue", inStock: false },
-      { productId: productDocs[1]._id.toString(), name: "128GB", inStock: true },
-      { productId: productDocs[1]._id.toString(), name: "256GB", inStock: true },
-      { productId: productDocs[1]._id.toString(), name: "512GB", inStock: false },
-      { productId: productDocs[3]._id.toString(), name: "Black", inStock: true },
-      { productId: productDocs[3]._id.toString(), name: "Silver", inStock: true },
-      { productId: productDocs[4]._id.toString(), name: "Black", inStock: true },
-      { productId: productDocs[4]._id.toString(), name: "White", inStock: true },
+      { productId: productDocs[0]._id?.toString() || "", name: "Black", inStock: true },
+      { productId: productDocs[0]._id?.toString() || "", name: "White", inStock: true },
+      { productId: productDocs[0]._id?.toString() || "", name: "Blue", inStock: false },
+      { productId: productDocs[1]._id?.toString() || "", name: "128GB", inStock: true },
+      { productId: productDocs[1]._id?.toString() || "", name: "256GB", inStock: true },
+      { productId: productDocs[1]._id?.toString() || "", name: "512GB", inStock: false },
+      { productId: productDocs[3]._id?.toString() || "", name: "Black", inStock: true },
+      { productId: productDocs[3]._id?.toString() || "", name: "Silver", inStock: true },
+      { productId: productDocs[4]._id?.toString() || "", name: "Black", inStock: true },
+      { productId: productDocs[4]._id?.toString() || "", name: "White", inStock: true },
     ];
     
     await Promise.all(
