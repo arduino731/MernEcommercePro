@@ -13,17 +13,25 @@ export const connectToDatabase = async (): Promise<void> => {
     if (connectionString) {
       // Connect to MongoDB Atlas or external MongoDB
       log(`Connecting to MongoDB database...`, 'database');
-      await mongoose.connect(connectionString);
-      log(`Connected to MongoDB database`, 'database');
-    } else {
-      // For development or when no connection string is available, use in-memory MongoDB
-      log(`No MongoDB connection string found. Using in-memory MongoDB`, 'database');
-      mongoServer = await MongoMemoryServer.create();
-      const mongoUri = mongoServer.getUri();
-      
-      await mongoose.connect(mongoUri);
-      log(`Connected to MongoDB Memory Server: ${mongoUri}`, 'database');
-    }
+      try {
+        await mongoose.connect(connectionString, {
+          serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+        });
+        log(`Connected to MongoDB database`, 'database');
+        return;
+      } catch (err) {
+        log(`Failed to connect to MongoDB database: ${err}. Falling back to in-memory database.`, 'database');
+        // Fall through to in-memory database
+      }
+    } 
+    
+    // For development or when connection failed, use in-memory MongoDB
+    log(`Using in-memory MongoDB for development`, 'database');
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    
+    await mongoose.connect(mongoUri);
+    log(`Connected to MongoDB Memory Server: ${mongoUri}`, 'database');
     
     log('MongoDB connection established', 'database');
   } catch (error) {
