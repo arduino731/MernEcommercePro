@@ -7,11 +7,17 @@ let mongoServer: MongoMemoryServer;
 // Connect to MongoDB
 export const connectToDatabase = async (): Promise<void> => {
   try {
-    // Check if we're in production and have a MongoDB URI
-    if (process.env.NODE_ENV === 'production' && process.env.MONGODB_URI) {
-      await mongoose.connect(process.env.MONGODB_URI);
+    // Check for MongoDB connection string, prioritize dedicated MONGODB_URI
+    const connectionString = process.env.MONGODB_URI || process.env.DATABASE_URL;
+    
+    if (connectionString) {
+      // Connect to MongoDB Atlas or external MongoDB
+      log(`Connecting to MongoDB database...`, 'database');
+      await mongoose.connect(connectionString);
+      log(`Connected to MongoDB database`, 'database');
     } else {
-      // For development, use a MongoDB Memory Server
+      // For development or when no connection string is available, use in-memory MongoDB
+      log(`No MongoDB connection string found. Using in-memory MongoDB`, 'database');
       mongoServer = await MongoMemoryServer.create();
       const mongoUri = mongoServer.getUri();
       
