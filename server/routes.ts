@@ -1,15 +1,13 @@
-import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./mongoose-storage";
-import { configurePassport, hashPassword, isAuthenticated, isAdmin } from "./auth";
-import { createLinkToken, exchangePublicToken, createPayment, getPaymentStatus } from "./plaid";
-import passport from "passport";
+import express, { type Express } from "express";
+import path from "path";
 import session from "express-session";
-import { z } from "zod";
-import { insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertReviewSchema } from "@shared/models";
-import bcrypt from 'bcrypt';
+import passport from "passport";
+import { configurePassport, isAuthenticated } from "./auth";
+import { storage } from "./mongoose-storage";
+import { ProductModel, ProductVariantModel, ReviewModel, UserModel, insertReviewSchema } from "@shared/models";
+import mongoose from "mongoose";
 
-// Declare augmented Express types
 declare global {
   namespace Express {
     interface User {
@@ -20,10 +18,12 @@ declare global {
     }
   }
 }
-import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure session
+  // Serve static files from Vite's output
+  app.use(express.static(path.resolve("client", "build")));
+
+  // Session + Passport
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "session-secret",
@@ -31,16 +31,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       saveUninitialized: false,
       cookie: {
         secure: process.env.NODE_ENV === "production",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
+        maxAge: 24 * 60 * 60 * 1000,
       },
     })
   );
 
-  // Initialize passport
+  //Initialize passport
+  configurePassport();
   const passportInstance = configurePassport();
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // ============ AUTH ROUTES ============
+  // ============ AUTH ROUTES ============
   // ============ AUTH ROUTES ============
   
   // Register
@@ -183,378 +186,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ============ CATEGORY ROUTES ============
-  
-  // Get all categories
-  app.get("/api/categories", async (req, res) => {
-    try {
-      const categories = await storage.getCategories();
-      res.json(categories);
-    } catch (error) {
-      console.error("Error getting categories:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
 
-  // ============ PRODUCT ROUTES ============
-  
-  // Get products with filtering
+  // ========== API ROUTES ==========
   app.get("/api/products", async (req, res) => {
-    try {
-      const {
-        category,
-        search,
-        minPrice,
-        maxPrice,
-        inStock,
-        featured,
-        new: isNew,
-        limit,
-        sortBy,
-      } = req.query;
-      
-      const filters = {
-        category: category as string,
-        search: search as string,
-        minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
-        maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
-        inStock: inStock === "true" ? true : undefined,
-        featured: featured === "true" ? true : undefined,
-        isNew: isNew === "true" ? true : undefined,
-        limit: limit ? parseInt(limit as string) : undefined,
-        sortBy: sortBy as string,
-      };
-      
-      const products = await storage.getProducts(filters);
-      
-      // For each product, get the variants
-      const productsWithVariants = await Promise.all(
-        products.map(async (product) => {
-          const variants = await storage.getProductVariants(product.id);
-          return {
-            ...product,
-            variants,
-          };
-        })
-      );
-      
-      res.json(productsWithVariants);
-    } catch (error) {
-      console.error("Error getting products:", error);
-      res.status(500).json({ message: "Server error" });
-    }
+    const products = await ProductModel.find().lean();
+
+    const formatted = products.map((p) => ({
+      id: p._id.toString(),
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      imageUrl: p.imageUrl,
+      category: p.categoryId,
+      inStock: p.inStock,
+      isNew: p.isNew,
+      isFeatured: p.isFeatured,
+    }));
+
+    res.json(formatted);
   });
 
-  // Get product by ID
+
+
   app.get("/api/products/:id", async (req, res) => {
     try {
       const productId = req.params.id;
-      
-      if (!productId) {
+      if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
         return res.status(400).json({ message: "Invalid product ID" });
       }
-      
-      const product = await storage.getProductById(productId);
-      
+
+      const product = await ProductModel.findById(productId).lean();
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-      
-      // Get product variants
-      const variants = await storage.getProductVariants(productId);
-      
-      // Get product reviews
-      const reviews = await storage.getProductReviews(productId);
-      
-      // Get user info for each review
+
+      const variants = await ProductVariantModel.find({ productId }).lean();
+      const reviews = await ReviewModel.find({ productId }).sort({ createdAt: -1 }).lean();
+
       const reviewsWithUserInfo = await Promise.all(
         reviews.map(async (review) => {
-          const userId = typeof review.userId === 'object' 
-            ? review.userId.toString() 
-            : review.userId;
-            
-          const user = await storage.getUser(userId);
+          const user = await UserModel.findById(review.userId).lean();
           return {
             ...review,
-            author: user ? user.name : "Anonymous",
+            author: user?.name || "Anonymous",
             date: review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Unknown",
           };
         })
       );
-      
-      // Get related products (products in the same category, excluding the current product)
-      const categoryId = product.categoryId ? 
-        (typeof product.categoryId === 'object' ? product.categoryId.toString() : product.categoryId)
-        : undefined;
-        
-      const relatedProducts = await storage.getProducts({
-        category: categoryId,
-        limit: 4,
-      });
-      
-      const filteredRelatedProducts = relatedProducts.filter(
-        (p) => p.id !== product.id
-      );
-      
+
+      const relatedProducts = await ProductModel.find({
+        categoryId: product.categoryId,
+        _id: { $ne: product._id },
+      })
+        .limit(4)
+        .lean();
+
       res.json({
-        ...product.toObject(),
+        ...product,
         variants,
         reviews: reviewsWithUserInfo,
-        relatedProducts: filteredRelatedProducts,
+        relatedProducts,
       });
-    } catch (error) {
-      console.error("Error getting product:", error);
+    } catch (err) {
+      console.error("❌ Error in GET /api/products/:id:", err);
       res.status(500).json({ message: "Server error" });
     }
   });
 
-  // Add product review
   app.post("/api/products/:id/reviews", isAuthenticated, async (req, res) => {
     try {
       const productId = req.params.id;
-      
-      if (!productId) {
-        return res.status(400).json({ message: "Invalid product ID" });
-      }
-      
-      const product = await storage.getProductById(productId);
-      
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      
-      // Validate request body
-      const reviewSchema = insertReviewSchema.safeParse({
+      const parsed = insertReviewSchema.safeParse({
         ...req.body,
         productId,
         userId: req.user?.id,
       });
-      
-      if (!reviewSchema.success) {
-        return res.status(400).json({ 
-          message: "Invalid input", 
-          errors: reviewSchema.error.errors 
-        });
+
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
       }
-      
-      const review = await storage.createReview(reviewSchema.data);
-      
+
+      const review = await storage.createReview(parsed.data);
       res.status(201).json(review);
-    } catch (error) {
-      console.error("Error adding review:", error);
+    } catch (err) {
+      console.error("❌ Error submitting review:", err);
       res.status(500).json({ message: "Server error" });
     }
   });
 
-  // ============ ORDER ROUTES ============
-  
-  // Get user's orders
-  app.get("/api/orders", isAuthenticated, async (req, res) => {
-    try {
-      const orders = await storage.getOrders(req.user.id);
-      
-      // Get order items for each order
-      const ordersWithItems = await Promise.all(
-        orders.map(async (order) => {
-          const items = await storage.getOrderItems(order.id);
-          return {
-            ...order,
-            items,
-          };
-        })
-      );
-      
-      res.json(ordersWithItems);
-    } catch (error) {
-      console.error("Error getting orders:", error);
-      res.status(500).json({ message: "Server error" });
-    }
+  // ========== SPA FALLBACK ==========
+  app.get("*", (_req, res) => {
+    res.sendFile(path.resolve("client", "build", "index.html"));
   });
 
-  // Get order by ID
-  app.get("/api/orders/:id", isAuthenticated, async (req, res) => {
-    try {
-      const orderId = parseInt(req.params.id);
-      
-      if (isNaN(orderId)) {
-        return res.status(400).json({ message: "Invalid order ID" });
-      }
-      
-      const order = await storage.getOrderById(orderId);
-      
-      if (!order) {
-        return res.status(404).json({ message: "Order not found" });
-      }
-      
-      // Check if the order belongs to the authenticated user
-      if (order.userId !== req.user.id && !req.user.isAdmin) {
-        return res.status(403).json({ message: "Forbidden" });
-      }
-      
-      // Get order items
-      const items = await storage.getOrderItems(orderId);
-      
-      res.json({
-        ...order,
-        items,
-      });
-    } catch (error) {
-      console.error("Error getting order:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Create an order
-  app.post("/api/orders", isAuthenticated, async (req, res) => {
-    try {
-      // Validate request body
-      const orderValidation = insertOrderSchema.safeParse({
-        ...req.body,
-        userId: req.user.id,
-      });
-      
-      if (!orderValidation.success) {
-        return res.status(400).json({ 
-          message: "Invalid input", 
-          errors: orderValidation.error.errors 
-        });
-      }
-      
-      const orderData = orderValidation.data;
-      
-      // Create order
-      const order = await storage.createOrder(orderData);
-      
-      // Create order items
-      if (req.body.items && Array.isArray(req.body.items)) {
-        for (const item of req.body.items) {
-          const itemValidation = insertOrderItemSchema.safeParse({
-            ...item,
-            orderId: order.id,
-          });
-          
-          if (itemValidation.success) {
-            await storage.createOrderItem(itemValidation.data);
-          }
-        }
-      }
-      
-      // Get order items
-      const items = await storage.getOrderItems(order.id);
-      
-      res.status(201).json({
-        ...order,
-        items,
-      });
-    } catch (error) {
-      console.error("Error creating order:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // ============ PLAID ROUTES ============
-  
-  // Create link token
-  app.post("/api/plaid/create-link-token", isAuthenticated, async (req, res) => {
-    try {
-      const linkToken = await createLinkToken(req.user.id.toString());
-      res.json(linkToken);
-    } catch (error) {
-      console.error("Error creating link token:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Exchange public token
-  app.post("/api/plaid/exchange-token", isAuthenticated, async (req, res) => {
-    try {
-      const { publicToken } = req.body;
-      
-      if (!publicToken) {
-        return res.status(400).json({ message: "Public token is required" });
-      }
-      
-      const exchangeResponse = await exchangePublicToken(publicToken);
-      
-      // In a real app, you would store the access token in your database
-      // associated with the user's account
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error exchanging token:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Process payment
-  app.post("/api/plaid/payment", isAuthenticated, async (req, res) => {
-    try {
-      const { amount, accessToken, accountId, orderId } = req.body;
-      
-      if (!amount || !accessToken || !accountId || !orderId) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-      
-      // Generate a reference for the payment
-      const reference = `ORDER-${orderId}-${crypto.randomBytes(4).toString('hex')}`;
-      
-      const payment = await createPayment(
-        accessToken,
-        amount,
-        accountId,
-        req.user.name || "Customer",
-        reference
-      );
-      
-      // Update order with payment information
-      await storage.updateOrderStatus(parseInt(orderId), "processing");
-      
-      res.json(payment);
-    } catch (error) {
-      console.error("Error processing payment:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Get payment status
-  app.get("/api/plaid/payment/:paymentId", isAuthenticated, async (req, res) => {
-    try {
-      const { paymentId } = req.params;
-      
-      if (!paymentId) {
-        return res.status(400).json({ message: "Payment ID is required" });
-      }
-      
-      const paymentStatus = await getPaymentStatus(paymentId);
-      
-      res.json(paymentStatus);
-    } catch (error) {
-      console.error("Error getting payment status:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // ============ MISC ROUTES ============
-  
-  // Newsletter subscription endpoint
-  app.post("/api/newsletter/subscribe", async (req, res) => {
-    try {
-      const { email } = req.body;
-      
-      if (!email || typeof email !== 'string' || !email.includes('@')) {
-        return res.status(400).json({ message: "Valid email is required" });
-      }
-      
-      // In a real app, you would store the email in your database
-      // or send it to a newsletter service like Mailchimp
-      
-      res.json({ success: true, message: "Subscribed successfully" });
-    } catch (error) {
-      console.error("Error subscribing to newsletter:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
+  const server = createServer(app);
+  return server;
 }

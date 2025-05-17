@@ -1,174 +1,150 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, doublePrecision } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import mongoose, { Schema, Document } from 'mongoose';
+import { z } from 'zod';
 
-// User schema
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  name: text("name"),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  address: text("address"),
-  city: text("city"),
-  state: text("state"),
-  postalCode: text("postal_code"),
-  country: text("country"),
-  isAdmin: boolean("is_admin").default(false),
+// ===================== Mongoose Schemas =====================
+
+export const UserSchema = new Schema({
+  name: { type: String, default: null },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  address: { type: String, default: null },
+  city: { type: String, default: null },
+  state: { type: String, default: null },
+  postalCode: { type: String, default: null },
+  country: { type: String, default: null },
+  isAdmin: { type: Boolean, default: false },
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  name: true,
-  email: true,
-  password: true,
-  address: true,
-  city: true,
-  state: true,
-  postalCode: true,
-  country: true,
+export const CategorySchema = new Schema({
+  name: { type: String, required: true },
+  description: { type: String },
+  slug: { type: String, required: true, unique: true },
+  imageUrl: { type: String },
 });
 
-// Category schema
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  slug: text("slug").notNull().unique(),
-  imageUrl: text("image_url"),
+export const ProductSchema = new Schema({
+  name: { type: String, required: true },
+  description: { type: String, required: true },
+  longDescription: { type: String },
+  price: { type: Number, required: true },
+  imageUrl: { type: String, required: true },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  inStock: { type: Boolean, default: true },
+  isNew: { type: Boolean, default: false },
+  isFeatured: { type: Boolean, default: false },
+  specifications: [{ label: String, value: String }],
 });
 
-export const insertCategorySchema = createInsertSchema(categories).pick({
-  name: true,
-  description: true,
-  slug: true,
-  imageUrl: true,
+export const ProductVariantSchema = new Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  name: { type: String, required: true },
+  inStock: { type: Boolean, default: true },
 });
 
-// Product schema
-export const products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  longDescription: text("long_description"),
-  price: doublePrecision("price").notNull(),
-  imageUrl: text("image_url").notNull(),
-  categoryId: integer("category_id"),
-  inStock: boolean("in_stock").default(true),
-  isNew: boolean("is_new").default(false),
-  isFeatured: boolean("is_featured").default(false),
-  specifications: json("specifications"),
+export const OrderSchema = new Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  total: { type: Number, required: true },
+  status: { type: String, default: 'pending' },
+  shippingAddress: { type: String },
+  shippingCity: { type: String },
+  shippingState: { type: String },
+  shippingPostalCode: { type: String },
+  shippingCountry: { type: String },
+  paymentMethod: { type: String },
+  paymentId: { type: String },
+  createdAt: { type: Date, default: Date.now },
 });
 
-export const insertProductSchema = createInsertSchema(products).pick({
-  name: true,
-  description: true,
-  longDescription: true,
-  price: true,
-  imageUrl: true,
-  categoryId: true,
-  inStock: true,
-  isNew: true,
-  isFeatured: true,
-  specifications: true,
+export const OrderItemSchema = new Schema({
+  orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  quantity: { type: Number, required: true },
+  variant: { type: String },
 });
 
-// Product Variant schema
-export const productVariants = pgTable("product_variants", {
-  id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull(),
-  name: text("name").notNull(),
-  inStock: boolean("in_stock").default(true),
+export const ReviewSchema = new Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  rating: { type: Number, required: true },
+  text: { type: String },
+  createdAt: { type: Date, default: Date.now },
 });
 
-export const insertProductVariantSchema = createInsertSchema(productVariants).pick({
-  productId: true,
-  name: true,
-  inStock: true,
+// ===================== Zod Schemas =====================
+
+export const insertUserSchema = z.object({
+  name: z.string().nullable().optional(),
+  email: z.string().email(),
+  password: z.string().min(6),
+  address: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  postalCode: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  isAdmin: z.boolean().optional(),
 });
 
-// Order schema
-export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  total: doublePrecision("total").notNull(),
-  status: text("status").notNull().default("pending"),
-  shippingAddress: text("shipping_address"),
-  shippingCity: text("shipping_city"),
-  shippingState: text("shipping_state"),
-  shippingPostalCode: text("shipping_postal_code"),
-  shippingCountry: text("shipping_country"),
-  paymentMethod: text("payment_method"),
-  paymentId: text("payment_id"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertCategorySchema = z.object({
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  slug: z.string(),
+  imageUrl: z.string().nullable().optional(),
 });
 
-export const insertOrderSchema = createInsertSchema(orders).pick({
-  userId: true,
-  total: true,
-  status: true,
-  shippingAddress: true,
-  shippingCity: true,
-  shippingState: true,
-  shippingPostalCode: true,
-  shippingCountry: true,
-  paymentMethod: true,
-  paymentId: true,
+export const insertProductSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  longDescription: z.string().nullable().optional(),
+  price: z.number().positive(),
+  imageUrl: z.string(),
+  categoryId: z.string().optional(),
+  inStock: z.boolean().optional(),
+  isNew: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  specifications: z.array(z.any()).optional(),
 });
 
-// Order Item schema
-export const orderItems = pgTable("order_items", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull(),
-  productId: integer("product_id").notNull(),
-  name: text("name").notNull(),
-  price: doublePrecision("price").notNull(),
-  quantity: integer("quantity").notNull(),
-  variant: text("variant"),
+export const insertProductVariantSchema = z.object({
+  productId: z.string(),
+  name: z.string(),
+  inStock: z.boolean().optional(),
 });
 
-export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
-  orderId: true,
-  productId: true,
-  name: true,
-  price: true,
-  quantity: true,
-  variant: true,
+export const insertOrderSchema = z.object({
+  userId: z.string(),
+  total: z.number().positive(),
+  status: z.string().optional(),
+  shippingAddress: z.string().nullable().optional(),
+  shippingCity: z.string().nullable().optional(),
+  shippingState: z.string().nullable().optional(),
+  shippingPostalCode: z.string().nullable().optional(),
+  shippingCountry: z.string().nullable().optional(),
+  paymentMethod: z.string().nullable().optional(),
+  paymentId: z.string().nullable().optional(),
 });
 
-// Reviews schema
-export const reviews = pgTable("reviews", {
-  id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull(),
-  userId: integer("user_id").notNull(),
-  rating: integer("rating").notNull(),
-  text: text("text"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertOrderItemSchema = z.object({
+  orderId: z.string(),
+  productId: z.string(),
+  name: z.string(),
+  price: z.number().positive(),
+  quantity: z.number().int().positive(),
+  variant: z.string().nullable().optional(),
 });
 
-export const insertReviewSchema = createInsertSchema(reviews).pick({
-  productId: true,
-  userId: true,
-  rating: true,
-  text: true,
+export const insertReviewSchema = z.object({
+  productId: z.string(),
+  userId: z.string(),
+  rating: z.number().int().min(1).max(5),
+  text: z.string().nullable().optional(),
 });
 
-// Define types
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
-export type Category = typeof categories.$inferSelect;
-
 export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Product = typeof products.$inferSelect;
-
 export type InsertProductVariant = z.infer<typeof insertProductVariantSchema>;
-export type ProductVariant = typeof productVariants.$inferSelect;
-
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
-export type Order = typeof orders.$inferSelect;
-
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
-export type OrderItem = typeof orderItems.$inferSelect;
-
 export type InsertReview = z.infer<typeof insertReviewSchema>;
-export type Review = typeof reviews.$inferSelect;

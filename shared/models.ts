@@ -223,6 +223,20 @@ export const insertReviewSchema = z.object({
 });
 
 // Define infer types
+export type PlainProduct = {
+  id: string;
+  name: string;
+  description: string;
+  longDescription: string | null;
+  price: number;
+  imageUrl: string;
+  categoryId: string;
+  inStock: boolean;
+  isNew: boolean;
+  isFeatured: boolean;
+  specifications: { label: string; value: string }[];
+};
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;

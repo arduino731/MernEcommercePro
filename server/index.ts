@@ -1,78 +1,58 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import { connectToDatabase } from "./database";
 import { storage } from "./mongoose-storage";
+import dotenv from "dotenv";
+dotenv.config();
 
-// Connect to MongoDB database and initialize data
+const app = express();
+
+// Connect to DB and preload data
 (async () => {
   await connectToDatabase();
   await storage.initializeData();
 })();
 
-const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Logger for /api requests
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJson: any;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+  const originalJson = res.json;
+  res.json = function (body, ...args) {
+    capturedJson = body;
+    return originalJson.apply(res, [body, ...args]);
   };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
+      let log = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJson) log += ` :: ${JSON.stringify(capturedJson)}`;
+      if (log.length > 120) log = log.slice(0, 120) + "…";
+      console.log(log);
     }
   });
 
   next();
 });
 
+// Register API routes and static client serving
 (async () => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
+    res.status(status).json({ message: err.message || "Internal Server Error" });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`🚀 Serving full stack app on http://localhost:${port}`);
   });
 })();

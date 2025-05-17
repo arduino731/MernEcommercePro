@@ -73,9 +73,24 @@ const Shop = () => {
   };
 
   // Fetch products with filters
-  const { data: products, isLoading: isLoadingProducts, refetch } = useQuery<Product[]>({
-    queryKey: [`/api/products?${buildQueryString()}`],
-  });
+const { data: products, isLoading: isLoadingProducts, refetch } = useQuery<Product[]>({
+  queryKey: ['/api/products'],
+  queryFn: async () => {
+    console.log("📦 Fetching from /api/products");
+    const res = await fetch(`/api/products`);
+    if (!res.ok) throw new Error("Failed to fetch products");
+    return res.json();
+  },
+});
+
+// 🟨 Debug only when `products` changes
+useEffect(() => {
+  if (products) {
+    console.log("🟨 Products from API:", products);
+  }
+}, [products]);
+
+
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +112,13 @@ const Shop = () => {
     refetch();
   };
 
+  const formatTitle = (categorySlug: string) => {
+    if (categorySlug === 'all') return 'All Products';
+    const categoryObj = categories?.find((c) => c.slug === categorySlug);
+    return categoryObj ? `Category: ${categoryObj.name}` : 'Products';
+  };
+
+
   const renderSkeletonCards = () => {
     return Array(8).fill(0).map((_, index) => (
       <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -116,19 +138,39 @@ const Shop = () => {
   return (
     <>
       <Helmet>
-        <title>Shop Technology Products | ShopMERN</title>
-        <meta name="description" content="Browse our collection of high-quality technology products. Find smartphones, headphones, smartwatches, and more with secure payment options and fast shipping." />
-        <meta property="og:title" content="Shop Technology Products | ShopMERN" />
-        <meta property="og:description" content="Browse our collection of high-quality technology products with secure payments and fast shipping." />
+        <title>
+          {selectedCategory === 'all'
+            ? 'Shop Technology Products | ShopMERN'
+            : `${formatTitle(selectedCategory)} | ShopMERN`}
+        </title>
+        <meta
+          name="description"
+          content={
+            selectedCategory === 'all'
+              ? 'Browse our collection of high-quality technology products. Find smartphones, headphones, smartwatches, and more with secure payment options and fast shipping.'
+              : `Shop our ${formatTitle(selectedCategory)}. Fast shipping and secure checkout.`
+          }
+        />
+        <meta property="og:title" content={formatTitle(selectedCategory) + ' | ShopMERN'} />
+        <meta
+          property="og:description"
+          content={`Shop ${formatTitle(selectedCategory)}. Secure payment and fast delivery.`}
+        />
         <meta property="og:type" content="website" />
       </Helmet>
+
       
       <div className="bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">Shop</h1>
-            <p className="text-gray-600 mt-2">Browse our collection of high-quality products</p>
+            <h1 className="text-3xl font-bold">{formatTitle(selectedCategory)}</h1>
+            <p className="text-gray-600 mt-2">
+              {selectedCategory === 'all'
+                ? 'Browse our collection of high-quality products.'
+                : `Showing results for "${selectedCategory}" category.`}
+            </p>
           </div>
+
           
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Mobile Filter Button */}
@@ -190,7 +232,7 @@ const Shop = () => {
                           ))
                         ) : (
                           categories?.map(category => (
-                            <div key={category.id} className="flex items-center space-x-2">
+                            <div key={category._id} className="flex items-center space-x-2">
                               <RadioGroupItem value={category.slug} id={`${category.slug}-mobile`} />
                               <Label htmlFor={`${category.slug}-mobile`}>{category.name}</Label>
                             </div>
@@ -356,7 +398,7 @@ const Shop = () => {
                       ))
                     ) : (
                       categories?.map(category => (
-                        <div key={category.id} className="flex items-center space-x-2">
+                        <div key={category._id} className="flex items-center space-x-2">
                           <RadioGroupItem value={category.slug} id={category.slug} />
                           <Label htmlFor={category.slug}>{category.name}</Label>
                         </div>
@@ -495,9 +537,10 @@ const Shop = () => {
                 </div>
               ) : products && products.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map(product => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
+                  {products.map(product => {
+                    console.log("🧪 Rendering product card:", product);
+                    return <ProductCard key={product.id} product={product} />;
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-16 bg-white rounded-lg shadow-sm">

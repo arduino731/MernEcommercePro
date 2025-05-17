@@ -8,19 +8,21 @@ let mongoServer: MongoMemoryServer;
 export const connectToDatabase = async (): Promise<void> => {
   try {
     // Check for MongoDB connection string, prioritize dedicated MONGODB_URI
-    const connectionString = process.env.MONGODB_URI || process.env.DATABASE_URL;
-    
+    const connectionString = process.env.MONGODB_URI || process.env.DATABASE_URL || "mongodb://localhost:27017/test";
+    console.log("📦 ENV MONGODB_URI:", process.env.MONGODB_URI);
+
     if (connectionString) {
       // Connect to MongoDB Atlas or external MongoDB
-      log(`Connecting to MongoDB database...`, 'database');
+      // log(`Connecting to MongoDB database...`, 'database');
       try {
         await mongoose.connect(connectionString, {
           serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
         });
+        
         log(`Connected to MongoDB database`, 'database');
         return;
       } catch (err) {
-        log(`Failed to connect to MongoDB database: ${err}. Falling back to in-memory database.`, 'database');
+        console.error("❌ MongoDB connection error:", err);
         // Fall through to in-memory database
       }
     } 
@@ -60,6 +62,8 @@ export const disconnectFromDatabase = async (): Promise<void> => {
 // Handle MongoDB connection events
 mongoose.connection.on('connected', () => {
   log('MongoDB connected', 'database');
+  console.log("Connected to MongoDB at:", mongoose.connection.name);
+
 });
 
 mongoose.connection.on('error', (err) => {
