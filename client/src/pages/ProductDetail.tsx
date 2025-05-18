@@ -48,14 +48,15 @@ const ProductDetail = () => {
   const [rating, setRating] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: product, isLoading, error, refetch } = useQuery<ProductDetailData>({
-    queryKey: [`/api/products/${id}`],
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ['/api/products', id],
     queryFn: async () => {
+      if (!id) throw new Error("Missing product ID");
       const res = await fetch(`/api/products/${id}`);
-      if (!res.ok) throw new Error('Failed to fetch product');
+      if (!res.ok) throw new Error("Failed to fetch product");
       return res.json();
     },
-    enabled: !!id,
+    enabled: !!id, // only run query when `id` is available
   });
 
   const handleAddToCart = () => {
@@ -73,56 +74,56 @@ const ProductDetail = () => {
     }
   };
 
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reviewText.trim()) return;
+  // const handleReviewSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!reviewText.trim()) return;
 
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/products/${id}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          rating,
-          text: reviewText,
-        }),
-      });
+  //   setIsSubmitting(true);
+  //   try {
+  //     const res = await fetch(`/api/products/${id}/reviews`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       credentials: 'include',
+  //       body: JSON.stringify({
+  //         rating,
+  //         text: reviewText,
+  //       }),
+  //     });
 
-      const result = await res.json();
+  //     const result = await res.json();
 
-      if (!res.ok) {
-        toast({ title: 'Error', description: result.message || 'Failed to submit review', variant: 'destructive' });
-      } else {
-        toast({ title: 'Thank you!', description: 'Your review has been posted.' });
-        setReviewText('');
-        setRating(5);
-        refetch(); // Refresh product data to show new review
-      }
-    } catch (err) {
-      toast({ title: 'Error', description: 'An error occurred while submitting your review.', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  //     if (!res.ok) {
+  //       toast({ title: 'Error', description: result.message || 'Failed to submit review', variant: 'destructive' });
+  //     } else {
+  //       toast({ title: 'Thank you!', description: 'Your review has been posted.' });
+  //       setReviewText('');
+  //       setRating(5);
+  //       refetch(); // Refresh product data to show new review
+  //     }
+  //   } catch (err) {
+  //     toast({ title: 'Error', description: 'An error occurred while submitting your review.', variant: 'destructive' });
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
-  const increaseQuantity = () => setQuantity(prev => prev + 1);
-  const decreaseQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
+  // const increaseQuantity = () => setQuantity(prev => prev + 1);
+  // const decreaseQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
 
-  const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    return Array(5)
-      .fill(0)
-      .map((_, i) =>
-        i < fullStars ? (
-          <Star key={i} className="fill-accent text-accent h-4 w-4" />
-        ) : (
-          <Star key={i} className="text-gray-300 h-4 w-4" />
-        )
-      );
-  };
+  // const renderStars = (rating: number) => {
+  //   const fullStars = Math.floor(rating);
+  //   return Array(5)
+  //     .fill(0)
+  //     .map((_, i) =>
+  //       i < fullStars ? (
+  //         <Star key={i} className="fill-accent text-accent h-4 w-4" />
+  //       ) : (
+  //         <Star key={i} className="text-gray-300 h-4 w-4" />
+  //       )
+  //     );
+  // };
 
   if (isLoading) return <div className="container mx-auto py-16 text-center">Loading...</div>;
   if (error || !product) return (
@@ -137,6 +138,7 @@ const ProductDetail = () => {
     ? product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length
     : 0;
 
+  console.log("🧩 ProductDetail page loaded");
   return (
     <>
       <Helmet>

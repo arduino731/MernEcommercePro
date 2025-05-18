@@ -191,7 +191,7 @@ async getProducts(filters?: {
     if (filters.search) {
       query.$or = [
         { name: { $regex: filters.search, $options: 'i' } },
-        { description: { $regex: filters.search, $options: 'i' } }
+        { description: { $regex: filters.search, $options: 'i' } },
       ];
     }
 
@@ -216,7 +216,7 @@ async getProducts(filters?: {
     }
   }
 
-  let productsQuery = ProductModel.find(query);
+  let productsQuery = ProductModel.find(query).lean();
 
   if (filters?.sortBy) {
     switch (filters.sortBy) {
@@ -232,20 +232,24 @@ async getProducts(filters?: {
   }
 
   const docs = await productsQuery.exec();
+
+  // ✅ Map _id to id
   return docs.map(product => ({
-    id: product.id.toString(),
+    id: product._id.toString(), // <--- important
     name: product.name,
     description: product.description,
     longDescription: product.longDescription ?? null,
     price: product.price,
     imageUrl: product.imageUrl,
-    categoryId: product.categoryId.toString(),
+    categoryId: product.categoryId?.toString() ?? "",
     inStock: product.inStock,
     isNew: product.isNew,
     isFeatured: product.isFeatured,
-    specifications: product.specifications,
+    specifications: product.specifications ?? [],
   }));
 }
+
+
 
 async getProductById(id: string): Promise<Product | null> {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
