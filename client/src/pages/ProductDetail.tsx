@@ -37,7 +37,7 @@ interface ProductDetailData extends ProductType {
 }
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // ✅ should give you the product ID from the URL
   const { addToCart } = useCart();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
@@ -139,6 +139,8 @@ const ProductDetail = () => {
     : 0;
 
   console.log("🧩 ProductDetail page loaded");
+
+  
   return (
     <>
       <Helmet>
@@ -151,9 +153,9 @@ const ProductDetail = () => {
           {/* ... Product details and tabs omitted for brevity ... */}
 
           {/* Reviews Tab */}
-          <Tabs defaultValue="description">
+          {/* <Tabs defaultValue="description"> */}
             {/* ...Other TabsList code here... */}
-            <TabsContent value="reviews">
+            {/* <TabsContent value="reviews">
               {product.reviews.length === 0 ? (
                 <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
               ) : (
@@ -169,10 +171,10 @@ const ProductDetail = () => {
                     </div>
                   ))}
                 </div>
-              )}
+              )} */}
 
               {/* ✅ Review Form */}
-              <form onSubmit={handleReviewSubmit} className="space-y-4">
+              {/* <form onSubmit={handleReviewSubmit} className="space-y-4">
                 <div>
                   <label className="block mb-1 font-medium">Your Rating</label>
                   <select
@@ -200,8 +202,8 @@ const ProductDetail = () => {
                   {isSubmitting ? 'Submitting...' : 'Submit Review'}
                 </Button>
               </form>
-            </TabsContent>
-          </Tabs>
+            </TabsContent> */}
+          {/* </Tabs> */}
         </div>
       </div>
     </>
