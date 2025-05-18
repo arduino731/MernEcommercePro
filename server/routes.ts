@@ -5,7 +5,16 @@ import session from "express-session";
 import passport from "passport";
 import { configurePassport, isAuthenticated } from "./auth";
 import { storage } from "./mongoose-storage";
-import { ProductModel, ProductVariantModel, ReviewModel, UserModel, insertReviewSchema } from "@shared/models";
+import { 
+  ProductModel, 
+  ProductVariantModel, 
+  ReviewModel, 
+  UserModel, 
+  insertReviewSchema,
+  insertUserSchema,
+  insertOrderSchema,
+  insertOrderItemSchema
+} from "@shared/models";
 import mongoose from "mongoose";
 
 declare global {
@@ -45,144 +54,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ AUTH ROUTES ============
   
   // Register
-  // app.post("/api/auth/register", async (req, res) => {
-  //   try {
-  //     // Validate request body
-  //     const userValidation = insertUserSchema.safeParse(req.body);
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      // Validate request body
+      const userValidation = insertUserSchema.safeParse(req.body);
       
-  //     if (!userValidation.success) {
-  //       return res.status(400).json({ 
-  //         message: "Invalid input", 
-  //         errors: userValidation.error.errors 
-  //       });
-  //     }
+      if (!userValidation.success) {
+        return res.status(400).json({ 
+          message: "Invalid input", 
+          errors: userValidation.error.errors 
+        });
+      }
       
-  //     const userData = userValidation.data;
+      const userData = userValidation.data;
       
-  //     // Check if user already exists
-  //     const existingUser = await storage.getUserByEmail(userData.email);
-  //     if (existingUser) {
-  //       return res.status(400).json({ message: "User already exists" });
-  //     }
+      console.log("🔐 Registering user:", userData.email);
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
       
-  //     // Hash password
-  //     const hashedPassword = await hashPassword(userData.password);
+      // Hash password
+      const hashedPassword = await hashPassword(userData.password);
       
-  //     // Create user
-  //     const user = await storage.createUser({
-  //       ...userData,
-  //       password: hashedPassword,
-  //     });
+      // Create user
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword,
+      });
       
-  //     // Remove password from response
-  //     const { password, ...userWithoutPassword } = user;
+      // Remove password from response
+      // const { password, ...userWithoutPassword } = user;
       
-  //     res.status(201).json(userWithoutPassword);
-  //   } catch (error) {
-  //     console.error("Error registering user:", error);
-  //     res.status(500).json({ message: "Server error" });
-  //   }
-  // });
+      // res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error registering user:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 
   // Login
-  // app.post("/api/auth/login", (req, res, next) => {
-  //   passport.authenticate("local", (err: any, user: any, info: any) => {
-  //     if (err) {
-  //       return next(err);
-  //     }
-  //     if (!user) {
-  //       return res.status(401).json({ message: info.message });
-  //     }
-  //     req.logIn(user, (err) => {
-  //       if (err) {
-  //         return next(err);
-  //       }
-  //       // Remove password from response
-  //       const { password, ...userWithoutPassword } = user;
-  //       return res.json(userWithoutPassword);
-  //     });
-  //   })(req, res, next);
-  // });
+  app.post("/api/auth/login", (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ message: info.message });
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        console.log("👤 Logged in:", req.user?.email);
+        // Remove password from response
+        const { password, ...userWithoutPassword } = user;
+        return res.json(userWithoutPassword);
+      });
+    })(req, res, next);
+  });
 
   // Logout
-  // app.post("/api/auth/logout", (req, res) => {
-  //   req.logout(() => {
-  //     res.status(200).json({ message: "Logged out successfully" });
-  //   });
-  // });
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout(() => {
+      res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
 
   // Get current user
-  // app.get("/api/auth/user", (req, res) => {
-  //   if (!req.isAuthenticated()) {
-  //     return res.status(401).json({ message: "Not authenticated" });
-  //   }
-  //   res.json(req.user);
-  // });
+  app.get("/api/auth/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    res.json(req.user);
+  });
 
   // Update user profile
-  // app.put("/api/users/profile", isAuthenticated, async (req, res) => {
-  //   try {
-  //     // Extract only the fields that are allowed to be updated
-  //     const { name, address, city, state, postalCode, country } = req.body;
+  app.put("/api/users/profile", isAuthenticated, async (req, res) => {
+    try {
+      // Extract only the fields that are allowed to be updated
+      const { name, address, city, state, postalCode, country } = req.body;
       
-  //     const updatedUser = await storage.updateUser(req.user.id, {
-  //       name,
-  //       address,
-  //       city,
-  //       state,
-  //       postalCode,
-  //       country,
-  //     });
+      const updatedUser = await storage.updateUser(req.user.id, {
+        name,
+        address,
+        city,
+        state,
+        postalCode,
+        country,
+      });
       
-  //     if (!updatedUser) {
-  //       return res.status(404).json({ message: "User not found" });
-  //     }
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
       
-  //     // Remove password from response
-  //     const { password, ...userWithoutPassword } = updatedUser;
+      // Remove password from response
+      const { password, ...userWithoutPassword } = updatedUser;
       
-  //     res.json(userWithoutPassword);
-  //   } catch (error) {
-  //     console.error("Error updating user profile:", error);
-  //     res.status(500).json({ message: "Server error" });
-  //   }
-  // });
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 
   // Change password
-  // app.put("/api/users/change-password", isAuthenticated, async (req, res) => {
-  //   try {
-  //     const { currentPassword, newPassword } = req.body;
+  app.put("/api/users/change-password", isAuthenticated, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
       
-  //     if (!currentPassword || !newPassword) {
-  //       return res.status(400).json({ message: "Current password and new password are required" });
-  //     }
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
       
-  //     // Get user with password
-  //     const user = await storage.getUser(req.user.id);
+      // Get user with password
+      const user = await storage.getUser(req.user.id);
       
-  //     if (!user) {
-  //       return res.status(404).json({ message: "User not found" });
-  //     }
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
       
-  //     // Verify current password
-  //     const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
       
-  //     if (!isPasswordValid) {
-  //       return res.status(400).json({ message: "Current password is incorrect" });
-  //     }
+      if (!isPasswordValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
       
-  //     // Hash new password
-  //     const hashedPassword = await hashPassword(newPassword);
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
       
-  //     // Update user's password
-  //     await storage.updateUser(user.id, { password: hashedPassword });
+      // Update user's password
+      await storage.updateUser(user.id, { password: hashedPassword });
       
-  //     res.json({ message: "Password updated successfully" });
-  //   } catch (error) {
-  //     console.error("Error changing password:", error);
-  //     res.status(500).json({ message: "Server error" });
-  //   }
-  // });
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 
   // ============ CATEGORY ROUTES ============
     
