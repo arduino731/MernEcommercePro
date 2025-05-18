@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'wouter';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -47,6 +48,8 @@ const ProductDetail = () => {
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth(); // Will be null if not logged in
+
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['/api/products', id],
@@ -74,6 +77,41 @@ const ProductDetail = () => {
     }
   };
 
+  // const handleReviewSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!reviewText.trim()) return;
+
+  //   setIsSubmitting(true);
+  //   try {
+  //     const res = await fetch(`/api/products/${id}/reviews`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       credentials: 'include',
+  //       body: JSON.stringify({
+  //         rating,
+  //         text: reviewText,
+  //       }),
+  //     });
+
+  //     const result = await res.json();
+
+  //     if (!res.ok) {
+  //       toast({ title: 'Error', description: result.message || 'Failed to submit review', variant: 'destructive' });
+  //     } else {
+  //       toast({ title: 'Thank you!', description: 'Your review has been posted.' });
+  //       setReviewText('');
+  //       setRating(5);
+  //       refetch(); // Refresh product data to show new review
+  //     }
+  //   } catch (err) {
+  //     toast({ title: 'Error', description: 'An error occurred while submitting your review.', variant: 'destructive' });
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewText.trim()) return;
@@ -85,7 +123,7 @@ const ProductDetail = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
+        credentials: 'include', // ✅ sends the session cookie
         body: JSON.stringify({
           rating,
           text: reviewText,
@@ -95,15 +133,27 @@ const ProductDetail = () => {
       const result = await res.json();
 
       if (!res.ok) {
-        toast({ title: 'Error', description: result.message || 'Failed to submit review', variant: 'destructive' });
+        toast({
+          title: 'Error',
+          description: result.message || 'Failed to submit review',
+          variant: 'destructive',
+        });
       } else {
-        toast({ title: 'Thank you!', description: 'Your review has been posted.' });
+        toast({
+          title: 'Thank you!',
+          description: 'Your review has been posted.',
+        });
         setReviewText('');
         setRating(5);
-        refetch(); // Refresh product data to show new review
+        // Optionally re-fetch product data to show new review
+        // refetch(); ← useQuery's refetch if available
       }
     } catch (err) {
-      toast({ title: 'Error', description: 'An error occurred while submitting your review.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: 'An error occurred while submitting your review.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -318,6 +368,8 @@ const ProductDetail = () => {
                   <div className="text-center py-8">
                     <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
                   </div>
+
+                  
                 ) : (
                   <div className="space-y-6">
                     {product.reviews.map((review) => (
@@ -334,6 +386,39 @@ const ProductDetail = () => {
                     ))}
                   </div>
                 )}
+                {user ? (
+                  <form onSubmit={handleReviewSubmit} className="mt-8 space-y-4 border-t pt-6">
+                    <div>
+                      <label className="block mb-1 font-medium">Your Rating</label>
+                      <select
+                        className="border rounded px-3 py-2"
+                        value={rating}
+                        onChange={(e) => setRating(Number(e.target.value))}
+                        required
+                      >
+                        {[5, 4, 3, 2, 1].map(num => (
+                          <option key={num} value={num}>{num} Star{num > 1 ? 's' : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-1 font-medium">Your Review</label>
+                      <textarea
+                        className="w-full border rounded px-3 py-2"
+                        rows={4}
+                        value={reviewText}
+                        onChange={(e) => setReviewText(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                    </Button>
+                  </form>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-6">You must be logged in to write a review.</p>
+                )}
+
               </TabsContent>
             </Tabs>
           </div>
@@ -369,65 +454,6 @@ const ProductDetail = () => {
         </div>
       </div>
 
-{/* ============================================ */}
-      <div className="bg-gray-50 py-8">
-        <div className="container mx-auto px-4">
-          {/* ... Product details and tabs omitted for brevity ... */}
-
-          {/* Reviews Tab */}
-          {/* <Tabs defaultValue="description"> */}
-            {/* ...Other TabsList code here... */}
-            {/* <TabsContent value="reviews">
-              {product.reviews.length === 0 ? (
-                <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
-              ) : (
-                <div className="space-y-6 mb-6">
-                  {product.reviews.map((review) => (
-                    <div key={review.id} className="border-b border-gray-100 pb-6">
-                      <div className="flex justify-between mb-2">
-                        <h4 className="font-medium">{review.author}</h4>
-                        <span className="text-sm text-gray-500">{review.date}</span>
-                      </div>
-                      <div className="flex mb-2">{renderStars(review.rating)}</div>
-                      <p className="text-gray-600">{review.text}</p>
-                    </div>
-                  ))}
-                </div>
-              )} */}
-
-              {/* ✅ Review Form */}
-              {/* <form onSubmit={handleReviewSubmit} className="space-y-4">
-                <div>
-                  <label className="block mb-1 font-medium">Your Rating</label>
-                  <select
-                    className="border rounded px-3 py-2"
-                    value={rating}
-                    onChange={(e) => setRating(Number(e.target.value))}
-                    required
-                  >
-                    {[5, 4, 3, 2, 1].map(num => (
-                      <option key={num} value={num}>{num} Star{num > 1 && 's'}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Your Review</label>
-                  <textarea
-                    className="w-full border rounded px-3 py-2"
-                    rows={4}
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Submitting...' : 'Submit Review'}
-                </Button>
-              </form>
-            </TabsContent> */}
-          {/* </Tabs> */}
-        </div>
-      </div>
     </>
   );
 };

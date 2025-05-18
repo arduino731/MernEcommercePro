@@ -167,6 +167,7 @@ export const insertUserSchema = z.object({
   isAdmin: z.boolean().optional(),
 });
 
+
 export const insertCategorySchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
@@ -216,10 +217,10 @@ export const insertOrderItemSchema = z.object({
 });
 
 export const insertReviewSchema = z.object({
-  productId: z.string(),
-  userId: z.string(),
-  rating: z.number().int().min(1).max(5),
-  text: z.string().nullable().optional(),
+  productId: z.string().min(1),
+  userId: z.string().min(1),
+  rating: z.number().min(1).max(5),
+  text: z.string().min(3),
 });
 
 // Define infer types

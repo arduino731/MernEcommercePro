@@ -2,7 +2,7 @@ import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import bcrypt from 'bcrypt';
 import { storage } from './mongoose-storage';
-import { User } from '@shared/models';
+import { User, UserModel } from '@shared/models';
 
 // Configure Passport with a local strategy
 export const configurePassport = () => {
@@ -41,25 +41,26 @@ export const configurePassport = () => {
   
   // Serialize user to the session
   passport.serializeUser((user: any, done) => {
-    done(null, user.id);
+    done(null, user._id);
   });
   
   // Deserialize user from the session
-  passport.deserializeUser(async (id: string, done) => {
+  passport.deserializeUser(async (id, done) => {
     try {
-      const user = await storage.getUser(id);
-      if (!user) {
-        return done(new Error('User not found'));
-      }
-      
-      // Don't send password to the client
-      const userObj = user.toObject();
-      const { password, ...userWithoutPassword } = userObj;
-      done(null, userWithoutPassword);
+      const user = await UserModel.findById(id).lean();
+      if (!user) return done(null, false);
+
+      done(null, {
+        id: user._id.toString(), // ✅ Required for req.user.id
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+      });
     } catch (error) {
       done(error);
     }
   });
+
   
   return passport;
 };

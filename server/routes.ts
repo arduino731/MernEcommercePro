@@ -47,7 +47,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   //Initialize passport
   configurePassport();
-  const passportInstance = configurePassport();
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -304,6 +303,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/products/:id/reviews", isAuthenticated, async (req, res) => {
     try {
       const productId = req.params.id;
+
+      // 🔍 Log the incoming review data before validation
+      console.log("📥 Incoming review payload:", {
+        ...req.body,
+        productId,
+        userId: req.user?.id,
+      });
+
       const parsed = insertReviewSchema.safeParse({
         ...req.body,
         productId,
