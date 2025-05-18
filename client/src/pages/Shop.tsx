@@ -74,21 +74,21 @@ const Shop = () => {
 
   // Fetch products with filters
 const { data: products, isLoading: isLoadingProducts, refetch } = useQuery<Product[]>({
-  queryKey: ['/api/products'],
+  queryKey: [`/api/products?${buildQueryString()}`],
   queryFn: async () => {
-    console.log("📦 Fetching from /api/products");
-    const res = await fetch(`/api/products`);
+    // console.log("📦 Fetching from /api/products");
+    const res = await fetch(`/api/products?${buildQueryString()}`);
     if (!res.ok) throw new Error("Failed to fetch products");
     return res.json();
   },
 });
 
-// 🟨 Debug only when `products` changes
-useEffect(() => {
-  if (products) {
-    console.log("🟨 Products from API:", products);
-  }
-}, [products]);
+  // 🟨 Debug only when `products` changes
+  useEffect(() => {
+    if (products) {
+      // console.log("🟨 Products from API:", products);
+    }
+  }, [products]);
 
 
 
@@ -232,7 +232,7 @@ useEffect(() => {
                           ))
                         ) : (
                           categories?.map(category => (
-                            <div key={category._id} className="flex items-center space-x-2">
+                            <div key={category.id} className="flex items-center space-x-2">
                               <RadioGroupItem value={category.slug} id={`${category.slug}-mobile`} />
                               <Label htmlFor={`${category.slug}-mobile`}>{category.name}</Label>
                             </div>
@@ -398,7 +398,7 @@ useEffect(() => {
                       ))
                     ) : (
                       categories?.map(category => (
-                        <div key={category._id} className="flex items-center space-x-2">
+                        <div key={category.id} className="flex items-center space-x-2">
                           <RadioGroupItem value={category.slug} id={category.slug} />
                           <Label htmlFor={category.slug}>{category.name}</Label>
                         </div>

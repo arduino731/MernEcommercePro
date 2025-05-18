@@ -344,7 +344,7 @@ const ProductDetail = () => {
               <h2 className="text-2xl font-bold mb-6">Related Products</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {product.relatedProducts.map((relatedProduct) => (
-                  <Link key={relatedProduct.id} href={`/product/${relatedProduct.id}`}>
+                  <Link key={relatedProduct._id} href={`/products/${relatedProduct._id}`}>
                     <a>
                       <div className="product-card bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300">
                         <img 

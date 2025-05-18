@@ -114,61 +114,61 @@ export class MongooseStorage implements IStorage {
     return await newCategory.save();
   }
 
-  // async getProducts(filters?: any): Promise<Product[]> {
-  //   const query: any = {};
+  async getProducts(filters?: any): Promise<Product[]> {
+    const query: any = {};
 
-  //   if (filters) {
-  //     if (filters.category) {
-  //       const category = await CategoryModel.findOne({ slug: filters.category });
-  //       if (category) query.categoryId = category._id;
-  //     }
+    if (filters) {
+      if (filters.category) {
+        const category = await CategoryModel.findOne({ slug: filters.category });
+        if (category) query.categoryId = category._id;
+      }
 
-  //     if (filters.search) {
-  //       query.$or = [
-  //         { name: { $regex: filters.search, $options: 'i' } },
-  //         { description: { $regex: filters.search, $options: 'i' } }
-  //       ];
-  //     }
+      if (filters.search) {
+        query.$or = [
+          { name: { $regex: filters.search, $options: 'i' } },
+          { description: { $regex: filters.search, $options: 'i' } }
+        ];
+      }
 
-  //     if (filters.minPrice !== undefined) {
-  //       query.price = { ...query.price, $gte: filters.minPrice };
-  //     }
+      if (filters.minPrice !== undefined) {
+        query.price = { ...query.price, $gte: filters.minPrice };
+      }
 
-  //     if (filters.maxPrice !== undefined) {
-  //       query.price = { ...query.price, $lte: filters.maxPrice };
-  //     }
+      if (filters.maxPrice !== undefined) {
+        query.price = { ...query.price, $lte: filters.maxPrice };
+      }
 
-  //     if (filters.inStock !== undefined) {
-  //       query.inStock = filters.inStock;
-  //     }
+      if (filters.inStock !== undefined) {
+        query.inStock = filters.inStock;
+      }
 
-  //     if (filters.featured !== undefined) {
-  //       query.isFeatured = filters.featured;
-  //     }
+      if (filters.featured !== undefined) {
+        query.isFeatured = filters.featured;
+      }
 
-  //     if (filters.isNew !== undefined) {
-  //       query.isNew = filters.isNew;
-  //     }
-  //   }
+      if (filters.isNew !== undefined) {
+        query.isNew = filters.isNew;
+      }
+    }
 
-  //   let productsQuery = ProductModel.find(query);
+    let productsQuery = ProductModel.find(query);
 
-  //   if (filters?.sortBy) {
-  //     switch (filters.sortBy) {
-  //       case 'price_asc': productsQuery = productsQuery.sort({ price: 1 }); break;
-  //       case 'price_desc': productsQuery = productsQuery.sort({ price: -1 }); break;
-  //       case 'name_asc': productsQuery = productsQuery.sort({ name: 1 }); break;
-  //       case 'name_desc': productsQuery = productsQuery.sort({ name: -1 }); break;
-  //     }
-  //   }
+    if (filters?.sortBy) {
+      switch (filters.sortBy) {
+        case 'price_asc': productsQuery = productsQuery.sort({ price: 1 }); break;
+        case 'price_desc': productsQuery = productsQuery.sort({ price: -1 }); break;
+        case 'name_asc': productsQuery = productsQuery.sort({ name: 1 }); break;
+        case 'name_desc': productsQuery = productsQuery.sort({ name: -1 }); break;
+      }
+    }
 
-  //   if (filters?.limit) {
-  //     productsQuery = productsQuery.limit(filters.limit);
-  //   }
+    if (filters?.limit) {
+      productsQuery = productsQuery.limit(filters.limit);
+    }
 
-  //   const docs = await productsQuery.exec();
-  //   return docs.map(toProduct);
-  // }
+    const docs = await productsQuery.exec();
+    return docs.map(toProduct);
+  }
 async getProducts(filters?: {
   category?: string;
   search?: string;
@@ -185,7 +185,11 @@ async getProducts(filters?: {
   if (filters) {
     if (filters.category) {
       const category = await CategoryModel.findOne({ slug: filters.category });
-      if (category) query.categoryId = category._id;
+      // if (category) query.categoryId = category._id;
+      if (!category) {
+        return []; // No products if category not found
+      }
+      query.categoryId = category._id;
     }
 
     if (filters.search) {
@@ -215,6 +219,11 @@ async getProducts(filters?: {
       query.isNew = filters.isNew;
     }
   }
+
+  // ✅ Debug logs go right here
+  // console.log("🧪 Product query filters:", query);
+  // console.log("🧪 Sort:", filters?.sortBy);
+
 
   let productsQuery = ProductModel.find(query).lean();
 

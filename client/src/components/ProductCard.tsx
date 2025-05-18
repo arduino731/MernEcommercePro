@@ -40,11 +40,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
       variant: "default",
     });
   };
-  console.log("🔗 Link href:", `/products/${product.id}`);
+  // console.log("🔗 Link href:", `/products/${product.id}`); // look good using .id
 
   return (
     <div className="product-card bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300">
-    <Link href={`/products/${product.id}`}>
+      
+    <Link href={`/products/${product.id}`}>  {/*look good using .id */}
       <a className="block">
         <img 
           src={product.imageUrl} 
