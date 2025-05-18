@@ -198,66 +198,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ PRODUCT ROUTES ============
-  // app.get("/api/products", async (req, res) => {
-  //   const products = await ProductModel.find().lean();
 
-  //   const formatted = products.map((p) => ({
-  //     id: p._id.toString(),
-  //     name: p.name,
-  //     description: p.description,
-  //     price: p.price,
-  //     imageUrl: p.imageUrl,
-  //     category: p.categoryId,
-  //     inStock: p.inStock,
-  //     isNew: p.isNew,
-  //     isFeatured: p.isFeatured,
-  //   }));
+  app.get("/api/products", async (req, res) => {
+    try {
+      const {
+        category,
+        search,
+        minPrice,
+        maxPrice,
+        inStock,
+        featured,
+        new: isNew,
+        limit,
+        sortBy,
+      } = req.query;
 
-  //   res.json(formatted);
-  // });
- app.get("/api/products", async (req, res) => {
-  try {
-    const {
-      category,
-      search,
-      minPrice,
-      maxPrice,
-      inStock,
-      featured,
-      new: isNew,
-      limit,
-      sortBy,
-    } = req.query;
+      const filters = {
+        category: category as string | undefined,
+        search: search as string | undefined,
+        minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
+        inStock: inStock === "true" ? true : undefined,
+        featured: featured === "true" ? true : undefined,
+        isNew: isNew === "true" ? true : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+        sortBy: sortBy as string | undefined,
+      };
 
-    const filters = {
-      category: category as string | undefined,
-      search: search as string | undefined,
-      minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
-      maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
-      inStock: inStock === "true" ? true : undefined,
-      featured: featured === "true" ? true : undefined,
-      isNew: isNew === "true" ? true : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      sortBy: sortBy as string | undefined,
-    };
+      const products = await storage.getProducts(filters);
 
-    const products = await storage.getProducts(filters);
+      const productsWithVariants = await Promise.all(
+        products.map(async (product) => {
+          // const variants = await storage.getProductVariants(product._id); // ✅ use _id
+          const variants = await storage.getProductVariants((product as any)._id);
 
-    const productsWithVariants = await Promise.all(
-      products.map(async (product) => {
-        // const variants = await storage.getProductVariants(product._id); // ✅ use _id
-        const variants = await storage.getProductVariants((product as any)._id);
+          return { ...product, variants };
+        })
+      );
 
-        return { ...product, variants };
-      })
-    );
-
-    res.json(productsWithVariants);
-  } catch (error) {
-    console.error("❌ Error getting products:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+      res.json(productsWithVariants);
+    } catch (error) {
+      console.error("❌ Error getting products:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 
 
 
