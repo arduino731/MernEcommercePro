@@ -80,7 +80,7 @@ const ProductDetail = () => {
 
   //   setIsSubmitting(true);
   //   try {
-  //     const res = await fetch(`/api/products/${id}/reviews`, {
+  //     const res = await fetch(`/api/products/${_id}/reviews`, {
   //       method: 'POST',
   //       headers: {
   //         'Content-Type': 'application/json',
@@ -109,21 +109,21 @@ const ProductDetail = () => {
   //   }
   // };
 
-  // const increaseQuantity = () => setQuantity(prev => prev + 1);
-  // const decreaseQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
+  const increaseQuantity = () => setQuantity(prev => prev + 1);
+  const decreaseQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
 
-  // const renderStars = (rating: number) => {
-  //   const fullStars = Math.floor(rating);
-  //   return Array(5)
-  //     .fill(0)
-  //     .map((_, i) =>
-  //       i < fullStars ? (
-  //         <Star key={i} className="fill-accent text-accent h-4 w-4" />
-  //       ) : (
-  //         <Star key={i} className="text-gray-300 h-4 w-4" />
-  //       )
-  //     );
-  // };
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    return Array(5)
+      .fill(0)
+      .map((_, i) =>
+        i < fullStars ? (
+          <Star key={i} className="fill-accent text-accent h-4 w-4" />
+        ) : (
+          <Star key={i} className="text-gray-300 h-4 w-4" />
+        )
+      );
+  };
 
   if (isLoading) return <div className="container mx-auto py-16 text-center">Loading...</div>;
   if (error || !product) return (
@@ -183,7 +183,7 @@ const ProductDetail = () => {
                 <h1 className="text-3xl font-bold">{product.name}</h1>
                 
                 {/* Rating */}
-                {/* {product.reviews.length > 0 && (
+                {product.reviews.length > 0 && (
                   <div className="flex items-center gap-2">
                     <div className="flex">
                       {renderStars(avgRating)}
@@ -192,7 +192,7 @@ const ProductDetail = () => {
                       ({product.reviews.length} {product.reviews.length === 1 ? 'review' : 'reviews'})
                     </span>
                   </div>
-                )} */}
+                )}
                 
                 {/* Price */}
                 <div>
@@ -240,22 +240,22 @@ const ProductDetail = () => {
                 <div>
                   <h3 className="font-medium mb-2">Quantity</h3>
                   <div className="flex items-center space-x-2">
-                    {/* <Button 
+                    <Button 
                       variant="outline" 
                       size="icon" 
                       onClick={decreaseQuantity}
                       disabled={quantity <= 1}
                     >
                       <Minus className="h-4 w-4" />
-                    </Button> */}
+                    </Button>
                     <span className="w-10 text-center">{quantity}</span>
-                    {/* <Button 
+                    <Button 
                       variant="outline" 
                       size="icon" 
                       onClick={increaseQuantity}
                     >
                       <Plus className="h-4 w-4" />
-                    </Button> */}
+                    </Button>
                   </div>
                 </div>
                 
@@ -313,7 +313,7 @@ const ProductDetail = () => {
                 </div>
               </TabsContent>
               
-              {/* <TabsContent value="reviews">
+              <TabsContent value="reviews">
                 {product.reviews.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
@@ -334,7 +334,7 @@ const ProductDetail = () => {
                     ))}
                   </div>
                 )}
-              </TabsContent> */}
+              </TabsContent>
             </Tabs>
           </div>
           
