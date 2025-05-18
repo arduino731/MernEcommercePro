@@ -190,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/categories", async (req, res) => {
     try {
       const categories = await storage.getCategories();
-      // res.json(categories);
+      res.json(categories);
     } catch (error) {
       console.error("Error getting categories:", error);
       res.status(500).json({ message: "Server error" });
@@ -236,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      // res.json(productsWithVariants);
+      res.json(productsWithVariants);
     } catch (error) {
       console.error("❌ Error getting products:", error);
       res.status(500).json({ message: "Server error" });
