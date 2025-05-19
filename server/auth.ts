@@ -51,7 +51,7 @@ export const configurePassport = () => {
       if (!user) return done(null, false);
 
       done(null, {
-        id: user._id.toString(), // ✅ Required for req.user.id
+        id: user._id.toString(), 
         name: user.name,
         email: user.email,
         isAdmin: user.isAdmin,

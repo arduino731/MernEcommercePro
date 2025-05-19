@@ -305,11 +305,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productId = req.params.id;
 
       // 🔍 Log the incoming review data before validation
-      console.log("📥 Incoming review payload:", {
-        ...req.body,
-        productId,
-        userId: req.user?.id,
-      });
+      // console.log("📥 Incoming review payload:", {
+      //   ...req.body,
+      //   productId,
+      //   userId: req.user?.id,
+      // });
 
       const parsed = insertReviewSchema.safeParse({
         ...req.body,

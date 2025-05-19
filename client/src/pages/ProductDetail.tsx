@@ -77,41 +77,6 @@ const ProductDetail = () => {
     }
   };
 
-  // const handleReviewSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!reviewText.trim()) return;
-
-  //   setIsSubmitting(true);
-  //   try {
-  //     const res = await fetch(`/api/products/${id}/reviews`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       credentials: 'include',
-  //       body: JSON.stringify({
-  //         rating,
-  //         text: reviewText,
-  //       }),
-  //     });
-
-  //     const result = await res.json();
-
-  //     if (!res.ok) {
-  //       toast({ title: 'Error', description: result.message || 'Failed to submit review', variant: 'destructive' });
-  //     } else {
-  //       toast({ title: 'Thank you!', description: 'Your review has been posted.' });
-  //       setReviewText('');
-  //       setRating(5);
-  //       refetch(); // Refresh product data to show new review
-  //     }
-  //   } catch (err) {
-  //     toast({ title: 'Error', description: 'An error occurred while submitting your review.', variant: 'destructive' });
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
-
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewText.trim()) return;
