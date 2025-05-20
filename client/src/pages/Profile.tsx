@@ -6,7 +6,7 @@ import ProfileForm from '@/components/ProfileForm';
 import OrderItem from '@/components/OrderItem';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
-import { UserCircle, ShoppingBag, LogOut, Loader2 } from 'lucide-react';
+import { UserCircle, ShoppingBag, Loader2 } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -25,24 +25,25 @@ interface Order {
 }
 
 const Profile = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   
+  console.log("👤 User in Profile.tsx:", user);
+
   const { data: recentOrders, isLoading } = useQuery<Order[]>({
     queryKey: ['/api/orders'],
     enabled: isAuthenticated,
     select: (orders) => orders.slice(0, 3), // Get only 3 most recent orders
   });
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      setLocation('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
+  if (!user) {
+    return (
+      <div className="text-center py-20 text-gray-500">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin mb-4" />
+        Loading profile...
+      </div>
+    );
+  }
   if (!isAuthenticated) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -75,13 +76,6 @@ const Profile = () => {
           <h1 className="text-3xl font-bold">My Profile</h1>
           <p className="text-gray-600">Manage your account settings and view orders</p>
         </div>
-        <Button 
-          variant="outline" 
-          className="mt-4 md:mt-0 flex items-center" 
-          onClick={handleLogout}
-        >
-          <LogOut className="mr-2 h-4 w-4" /> Logout
-        </Button>
       </div>
       
       <Tabs defaultValue="profile" className="space-y-6">
@@ -91,7 +85,7 @@ const Profile = () => {
         </TabsList>
         
         <TabsContent value="profile" className="pt-6">
-          <ProfileForm />
+          <ProfileForm user={user} />
         </TabsContent>
         
         <TabsContent value="orders" className="pt-6">

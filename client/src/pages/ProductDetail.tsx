@@ -51,11 +51,13 @@ const ProductDetail = () => {
   const { user } = useAuth(); // Will be null if not logged in
 
 
-  const { data: product, isLoading, error } = useQuery({
-    queryKey: ['/api/products', id],
+  const { data: product, isLoading, error, refetch } = useQuery({
+    queryKey: ['product-detail', id],
     queryFn: async () => {
       if (!id) throw new Error("Missing product ID");
       const res = await fetch(`/api/products/${id}`);
+      await refetch().then(() => console.log("🔁 Product data reloaded"));
+
       if (!res.ok) throw new Error("Failed to fetch product");
       return res.json();
     },
@@ -108,10 +110,9 @@ const ProductDetail = () => {
           title: 'Thank you!',
           description: 'Your review has been posted.',
         });
-        setReviewText('');
+        setReviewText(''); // Clear form
         setRating(5);
-        // Optionally re-fetch product data to show new review
-        // refetch(); ← useQuery's refetch if available
+        refetch();
       }
     } catch (err) {
       toast({
@@ -153,7 +154,7 @@ const ProductDetail = () => {
     ? product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length
     : 0;
 
-  console.log("🧩 ProductDetail page loaded");
+  // console.log("🧩 ProductDetail page loaded");
 
 
   return (
@@ -162,7 +163,7 @@ const ProductDetail = () => {
         <title>{product.name} | ShopMERN</title>
         <meta name="description" content={product.description} />
         <meta property="og:title" content={`${product.name} | ShopMERN`} />
-        <meta property="og:description" content={product.description} />
+        {/* <meta property="og:description" content={product.description} /> */}
         <meta property="og:image" content={product.imageUrl} />
         <meta property="og:type" content="product" />
       </Helmet>

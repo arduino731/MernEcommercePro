@@ -51,9 +51,14 @@ export const configurePassport = () => {
       if (!user) return done(null, false);
 
       done(null, {
-        id: user._id.toString(), 
+        id: user._id.toString(),
         name: user.name,
         email: user.email,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        postalCode: user.postalCode,
+        country: user.country,
         isAdmin: user.isAdmin,
       });
     } catch (error) {

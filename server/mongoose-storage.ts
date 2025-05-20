@@ -37,7 +37,7 @@ export interface IStorage {
     isNew?: boolean;
     limit?: number;
     sortBy?: string;
-  }): Promise<Product[]>;
+  }): Promise<PlainProduct[]>;
   getProductById(id: string): Promise<Product | null>;
   createProduct(product: InsertProduct): Promise<Product>;
 
@@ -60,10 +60,10 @@ export interface IStorage {
 
 function toProduct(doc: any): Product {
   return {
-    id: doc.id.toString(),
+    id: doc._id.toString(),
     name: doc.name,
     description: doc.description,
-    longDescription: doc.longDescription,
+    longDescription: doc.longDescription ?? null,
     price: Number(doc.price ?? 0),
     imageUrl: doc.imageUrl,
     categoryId: doc.categoryId?.toString() ?? "",
@@ -114,61 +114,6 @@ export class MongooseStorage implements IStorage {
     return await newCategory.save();
   }
 
-  async getProducts(filters?: any): Promise<Product[]> {
-    const query: any = {};
-
-    if (filters) {
-      if (filters.category) {
-        const category = await CategoryModel.findOne({ slug: filters.category });
-        if (category) query.categoryId = category._id;
-      }
-
-      if (filters.search) {
-        query.$or = [
-          { name: { $regex: filters.search, $options: 'i' } },
-          { description: { $regex: filters.search, $options: 'i' } }
-        ];
-      }
-
-      if (filters.minPrice !== undefined) {
-        query.price = { ...query.price, $gte: filters.minPrice };
-      }
-
-      if (filters.maxPrice !== undefined) {
-        query.price = { ...query.price, $lte: filters.maxPrice };
-      }
-
-      if (filters.inStock !== undefined) {
-        query.inStock = filters.inStock;
-      }
-
-      if (filters.featured !== undefined) {
-        query.isFeatured = filters.featured;
-      }
-
-      if (filters.isNew !== undefined) {
-        query.isNew = filters.isNew;
-      }
-    }
-
-    let productsQuery = ProductModel.find(query);
-
-    if (filters?.sortBy) {
-      switch (filters.sortBy) {
-        case 'price_asc': productsQuery = productsQuery.sort({ price: 1 }); break;
-        case 'price_desc': productsQuery = productsQuery.sort({ price: -1 }); break;
-        case 'name_asc': productsQuery = productsQuery.sort({ name: 1 }); break;
-        case 'name_desc': productsQuery = productsQuery.sort({ name: -1 }); break;
-      }
-    }
-
-    if (filters?.limit) {
-      productsQuery = productsQuery.limit(filters.limit);
-    }
-
-    const docs = await productsQuery.exec();
-    return docs.map(toProduct);
-  }
 async getProducts(filters?: {
   category?: string;
   search?: string;
@@ -262,7 +207,7 @@ async getProducts(filters?: {
 
 async getProductById(id: string): Promise<Product | null> {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
-  return await ProductModel.findById(new mongoose.Types.ObjectId(id));
+  return await ProductModel.findById(id).lean();
 
 }
 
@@ -321,6 +266,7 @@ async getProductById(id: string): Promise<Product | null> {
 
   async initializeData(): Promise<void> {
     // Skipped for brevity
+    console.log("🛠 Skipped data initialization.");
   }
 }
 

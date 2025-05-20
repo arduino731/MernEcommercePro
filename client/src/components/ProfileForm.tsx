@@ -1,29 +1,28 @@
+import { useEffect, useState } from "react";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { profileFormSchema, type ProfileFormValues } from "@/lib/validations/profile";
 
-// Profile form schema
-const profileFormSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
-  email: z.string().email({ message: 'Invalid email address' }).optional(),
-  address: z.string().min(5, { message: 'Address must be at least 5 characters' }).optional(),
-  city: z.string().min(2, { message: 'City must be at least 2 characters' }).optional(),
-  state: z.string().min(2, { message: 'State must be at least 2 characters' }).optional(),
-  postalCode: z.string().min(5, { message: 'Postal code must be at least 5 characters' }).optional(),
-  country: z.string().min(2, { message: 'Country must be at least 2 characters' }).optional(),
-});
+interface Props {
+  user: {
+    name?: string;
+    email: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+}
 
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
-// Password form schema
 const passwordFormSchema = z.object({
   currentPassword: z.string().min(6, { message: 'Current password is required' }),
   newPassword: z.string().min(6, { message: 'Password must be at least 6 characters' }),
@@ -35,8 +34,11 @@ const passwordFormSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
-export default function ProfileForm() {
-  const { user, updateProfile, changePassword } = useAuth();
+export default function ProfileForm({ user }: Props) {
+  
+  console.log("📄 Loaded into ProfileForm:", user);
+
+  const { updateProfile, changePassword } = useAuth();
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const { toast } = useToast();
@@ -44,13 +46,13 @@ export default function ProfileForm() {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.name || '',
-      email: user?.email,
-      address: user?.address || '',
-      city: user?.city || '',
-      state: user?.state || '',
-      postalCode: user?.postalCode || '',
-      country: user?.country || '',
+      name: '',
+      email: '',
+      address: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: '',
     },
   });
 
@@ -62,6 +64,21 @@ export default function ProfileForm() {
       confirmPassword: '',
     },
   });
+
+  // ✅ Update form with user data when available
+  useEffect(() => {
+    if (user && user.email) {
+      profileForm.reset({
+        name: user.name ?? '',
+        email: user.email,
+        address: user.address ?? '',
+        city: user.city ?? '',
+        state: user.state ?? '',
+        postalCode: user.postalCode ?? '',
+        country: user.country ?? '',
+      });
+    }
+  }, [user]);
 
   const onProfileSubmit = async (values: ProfileFormValues) => {
     try {
@@ -86,11 +103,7 @@ export default function ProfileForm() {
     try {
       setIsSubmittingPassword(true);
       await changePassword(values.currentPassword, values.newPassword);
-      passwordForm.reset({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      passwordForm.reset();
       toast({
         title: 'Password updated',
         description: 'Your password has been successfully updated.',
@@ -108,6 +121,7 @@ export default function ProfileForm() {
 
   return (
     <div className="space-y-8">
+      {/* Profile Card */}
       <Card>
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
@@ -129,7 +143,6 @@ export default function ProfileForm() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={profileForm.control}
                 name="email"
@@ -137,18 +150,12 @@ export default function ProfileForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="john@example.com"
-                        {...field}
-                        disabled
-                        value={user?.email}
-                      />
+                      <Input placeholder="john@example.com" {...field} disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={profileForm.control}
                 name="address"
@@ -156,13 +163,12 @@ export default function ProfileForm() {
                   <FormItem>
                     <FormLabel>Street Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="123 Main St" {...field} value={field.value || ''} />
+                      <Input placeholder="123 Main St" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={profileForm.control}
@@ -171,13 +177,12 @@ export default function ProfileForm() {
                     <FormItem>
                       <FormLabel>City</FormLabel>
                       <FormControl>
-                        <Input placeholder="New York" {...field} value={field.value || ''} />
+                        <Input placeholder="New York" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={profileForm.control}
                   name="state"
@@ -185,14 +190,13 @@ export default function ProfileForm() {
                     <FormItem>
                       <FormLabel>State/Province</FormLabel>
                       <FormControl>
-                        <Input placeholder="NY" {...field} value={field.value || ''} />
+                        <Input placeholder="NY" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={profileForm.control}
@@ -201,13 +205,12 @@ export default function ProfileForm() {
                     <FormItem>
                       <FormLabel>Postal Code</FormLabel>
                       <FormControl>
-                        <Input placeholder="10001" {...field} value={field.value || ''} />
+                        <Input placeholder="10001" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={profileForm.control}
                   name="country"
@@ -215,18 +218,14 @@ export default function ProfileForm() {
                     <FormItem>
                       <FormLabel>Country</FormLabel>
                       <FormControl>
-                        <Input placeholder="United States" {...field} value={field.value || ''} />
+                        <Input placeholder="United States" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-
-              <Button
-                type="submit"
-                disabled={isSubmittingProfile}
-              >
+              <Button type="submit" disabled={isSubmittingProfile}>
                 {isSubmittingProfile ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating Profile...
@@ -240,6 +239,7 @@ export default function ProfileForm() {
         </CardContent>
       </Card>
 
+      {/* Password Card */}
       <Card>
         <CardHeader>
           <CardTitle>Change Password</CardTitle>
@@ -261,7 +261,6 @@ export default function ProfileForm() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={passwordForm.control}
                 name="newPassword"
@@ -275,7 +274,6 @@ export default function ProfileForm() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={passwordForm.control}
                 name="confirmPassword"
@@ -289,11 +287,7 @@ export default function ProfileForm() {
                   </FormItem>
                 )}
               />
-
-              <Button
-                type="submit"
-                disabled={isSubmittingPassword}
-              >
+              <Button type="submit" disabled={isSubmittingPassword}>
                 {isSubmittingPassword ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating Password...

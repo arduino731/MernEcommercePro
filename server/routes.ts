@@ -126,7 +126,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    res.json(req.user);
+    // 🧼 Convert Mongoose document to a plain object
+    const { password, ...user } = req.user.toObject?.() ?? req.user;
+    res.json(user);
   });
 
   // Update user profile

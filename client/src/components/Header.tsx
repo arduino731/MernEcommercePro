@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   ShoppingCart, 
-  User, 
+  User,
+  LogOut, 
   Search, 
   Menu, 
   X 
@@ -22,6 +23,8 @@ const Header = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [, setLocation] = useLocation();
+
 
   const toggleCart = () => {
     setIsCartOpen(!isCartOpen);
@@ -39,6 +42,15 @@ const Header = () => {
     e.preventDefault();
     // Implement search functionality with the searchQuery
     console.log('Searching for:', searchQuery);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setLocation('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   useEffect(() => {
@@ -105,13 +117,25 @@ const Header = () => {
                   </span>
                 )}
               </Button>
-              {isAuthenticated ? (
+              {isAuthenticated && user ? (
                 <div className="relative">
                   <Link href="/profile">
                     <Button variant="ghost" size="icon" aria-label="User profile">
                       <User className="h-5 w-5" />
                     </Button>
                   </Link>
+                  <Button variant="ghost" size="sm" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </Button>
+
+                  {/* <Button 
+          variant="outline" 
+          className="mt-4 md:mt-0 flex items-center" 
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-4 w-4" /> Logout
+        </Button> */}
                 </div>
               ) : (
                 <Button variant="ghost" size="icon" onClick={toggleAuthModal} aria-label="Login or register">
