@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'wouter';
 import { useCart } from '@/contexts/CartContext';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+
 import {
   ShoppingCart,
   ChevronRight,
@@ -49,19 +50,39 @@ const ProductDetail = () => {
   const [rating, setRating] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth(); // Will be null if not logged in
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const [highlightedReviewId, setHighlightedReviewId] = useState<string | null>(null);
+
+
 
   const { data: product, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/products', id],
     queryFn: async () => {
       if (!id) throw new Error("Missing product ID");
       const res = await fetch(`/api/products/${id}`);
-      // await refetch().then(() => console.log("🔁 Product data reloaded"));
-
       if (!res.ok) throw new Error("Failed to fetch product");
       return res.json();
     },
     enabled: !!id, // only run query when `id` is available
   });
+
+  useEffect(() => {
+    if (!highlightedReviewId) return;
+
+    // Defer until DOM is updated
+    const timeout = setTimeout(() => {
+      const el = document.getElementById(`review-${highlightedReviewId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Optional highlight clear
+        setTimeout(() => setHighlightedReviewId(null), 2000);
+      }
+    }, 100); // Wait 100ms for DOM to render
+
+    return () => clearTimeout(timeout);
+  }, [highlightedReviewId, product?.reviews]);
+
 
   const handleAddToCart = () => {
     if (product) {
@@ -105,13 +126,27 @@ const ProductDetail = () => {
           variant: 'destructive',
         });
       } else {
-        toast({
-          title: 'Thank you!',
-          description: 'Your review has been posted.',
-        });
-        setReviewText(''); // Clear form
+        toast({ title: 'Thank you!', description: 'Your review has been posted.' });
+        setReviewText('');
         setRating(5);
-        refetch();
+        const newReviewId = result._id || result.id; // depends on your backend response
+        await refetch();
+
+        setHighlightedReviewId(newReviewId); // 💡 track the new one
+
+        // scroll & highlight
+        setTimeout(() => {
+          const el = document.getElementById(`review-${newReviewId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+
+        // remove highlight after 2 seconds
+        setTimeout(() => {
+          setHighlightedReviewId(null);
+        }, 2000);
+
       }
     } catch (err) {
       toast({
@@ -139,16 +174,9 @@ const ProductDetail = () => {
         )
       );
   };
+  
 
   if (isLoading) return <div className="container mx-auto py-16 text-center">Loading...</div>;
-  // if (isLoading) {
-  //   return (
-  //     <div className="flex justify-center items-center h-screen text-gray-500">
-  //       <Loader2 className="h-8 w-8 mr-2 animate-spin" />
-  //       Loading product...
-  //     </div>
-  //   );
-  // }
 
   if (error || !product) return (
     <div className="container mx-auto px-4 py-16 text-center">
@@ -342,12 +370,16 @@ const ProductDetail = () => {
                   <div className="text-center py-8">
                     <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
                   </div>
-
-                  
                 ) : (
                   <div className="space-y-6">
                     {product.reviews.map((review) => (
-                      <div key={review.id} className="border-b border-gray-100 pb-6 last:border-b-0">
+                      <div 
+                        key={review.id}
+                        id={`review-${review.id}`}
+                        className={`border-b border-gray-100 pb-6 last:border-b-0 transition-all duration-300 ${
+                          highlightedReviewId === review.id ? 'bg-yellow-100 rounded-md p-4 shadow' : ''
+                        }`}
+                      >
                         <div className="flex justify-between mb-2">
                           <h4 className="font-medium">{review.author}</h4>
                           <span className="text-sm text-gray-500">{review.date}</span>
@@ -360,39 +392,41 @@ const ProductDetail = () => {
                     ))}
                   </div>
                 )}
-                {user ? (
-                  <form onSubmit={handleReviewSubmit} className="mt-8 space-y-4 border-t pt-6">
-                    <div>
-                      <label className="block mb-1 font-medium">Your Rating</label>
-                      <select
-                        className="border rounded px-3 py-2"
-                        value={rating}
-                        onChange={(e) => setRating(Number(e.target.value))}
-                        required
-                      >
-                        {[5, 4, 3, 2, 1].map(num => (
-                          <option key={num} value={num}>{num} Star{num > 1 ? 's' : ''}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block mb-1 font-medium">Your Review</label>
-                      <textarea
-                        className="w-full border rounded px-3 py-2"
-                        rows={4}
-                        value={reviewText}
-                        onChange={(e) => setReviewText(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? 'Submitting...' : 'Submit Review'}
-                    </Button>
-                  </form>
-                ) : (
-                  <p className="text-sm text-gray-500 mt-6">You must be logged in to write a review.</p>
-                )}
 
+                {/* Review Form */}
+                  {user ? (
+                    <form onSubmit={handleReviewSubmit} className="mt-8 space-y-4 border-t pt-6">
+                      <div>
+                        <label className="block mb-1 font-medium">Your Rating</label>
+                        <select
+                          className="border rounded px-3 py-2"
+                          value={rating}
+                          onChange={(e) => setRating(Number(e.target.value))}
+                          required
+                        >
+                          {[5, 4, 3, 2, 1].map(num => (
+                            <option key={num} value={num}>{num} Star{num > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block mb-1 font-medium">Your Review</label>
+                        <textarea
+                          className="w-full border rounded px-3 py-2"
+                          rows={4}
+                          value={reviewText}
+                          onChange={(e) => setReviewText(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                      </Button>
+                    </form>
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-6">You must be logged in to write a review.</p>
+                  )}
+                {/* </div> */}
               </TabsContent>
             </Tabs>
           </div>
