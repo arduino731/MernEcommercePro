@@ -305,26 +305,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/products/:id/reviews", isAuthenticated, async (req, res) => {
     try {
       const productId = req.params.id;
+      const { rating, text } = req.body;
+      const userId = typeof req.user === 'object' && ('id' in req.user || '_id' in req.user)
+      ? (req.user.id || req.user._id).toString()
+      : null;
 
-      // 🔍 Log the incoming review data before validation
-      // console.log("📥 Incoming review payload:", {
-      //   ...req.body,
-      //   productId,
-      //   userId: req.user?.id,
-      // });
-
-      const parsed = insertReviewSchema.safeParse({
-        ...req.body,
+      console.log("Review payload:", {
+        rating,
+        text,
         productId,
-        userId: req.user?.id,
+        userId,
+      }) 
+          
+      const parsed = insertReviewSchema.safeParse({
+        productId,
+        userId,
+        rating,
+        text,
       });
 
       if (!parsed.success) {
-        return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+        return res.status(400).json({
+          message: "Invalid input minimum text is 3 characters",
+          errors: parsed.error.flatten().fieldErrors,
+        });
       }
+    const review = await ReviewModel.create(parsed.data);
 
-      const review = await storage.createReview(parsed.data);
-      res.status(201).json(review);
+    // Optionally populate author's name
+    const fullReview = await ReviewModel.findById(review._id).populate("userId", "name");
+    // const fullReview = await ReviewModel.findById(review._id);
+
+      res.status(201).json(fullReview);
     } catch (err) {
       console.error("❌ Error submitting review:", err);
       res.status(500).json({ message: "Server error" });

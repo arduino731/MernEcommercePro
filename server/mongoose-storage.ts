@@ -266,7 +266,7 @@ async getProductById(id: string): Promise<Product | null> {
 
   async initializeData(): Promise<void> {
     // Skipped for brevity
-    console.log("🛠 Skipped data initialization.");
+    // console.log("🛠 Skipped data initialization.");
   }
 }
 

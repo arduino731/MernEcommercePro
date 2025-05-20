@@ -66,22 +66,26 @@ const ProductDetail = () => {
     enabled: !!id, // only run query when `id` is available
   });
 
-  useEffect(() => {
-    if (!highlightedReviewId) return;
 
-    // Defer until DOM is updated
-    const timeout = setTimeout(() => {
-      const el = document.getElementById(`review-${highlightedReviewId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+useEffect(() => {
+  if (!highlightedReviewId) return;
 
-        // Optional highlight clear
-        setTimeout(() => setHighlightedReviewId(null), 2000);
-      }
-    }, 100); // Wait 100ms for DOM to render
+  const timeout = setTimeout(() => {
+    const el = document.getElementById(`review-${highlightedReviewId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.add('bg-yellow-100', 'transition-all');
 
-    return () => clearTimeout(timeout);
-  }, [highlightedReviewId, product?.reviews]);
+      setTimeout(() => {
+        el.classList.remove('bg-yellow-100');
+        setHighlightedReviewId(null);
+      }, 2000);
+    }
+  }, 200); // delay ensures the DOM is updated
+
+  return () => clearTimeout(timeout);
+}, [highlightedReviewId, product?.reviews]);
+
 
 
   const handleAddToCart = () => {
@@ -118,7 +122,15 @@ const ProductDetail = () => {
       });
 
       const result = await res.json();
-
+      console.log("result:" , result);
+      await refetch(); // pulls new product with updated reviews
+      setHighlightedReviewId(result._id);
+      // if (reviewText.trim().length < 10) {
+      // toast({
+      //   title: 'Too Short',
+      //   description: 'Review must be at least 10 characters.',
+      //   variant: 'destructive',
+      // });
       if (!res.ok) {
         toast({
           title: 'Error',
@@ -185,6 +197,8 @@ const ProductDetail = () => {
       <Link href="/shop"><Button><ArrowLeft className="h-4 w-4 mr-2" /> Back to Shop</Button></Link>
     </div>
   );
+
+  console.log("🧪 Review keys:", product.reviews.map(r => r._id));
 
   const avgRating = product.reviews.length
     ? product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length
@@ -371,24 +385,28 @@ const ProductDetail = () => {
                     <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-6 ">
                     {product.reviews.map((review) => (
+                      // console.log(review)
                       <div 
-                        key={review.id}
-                        id={`review-${review.id}`}
-                        className={`border-b border-gray-100 pb-6 last:border-b-0 transition-all duration-300 ${
-                          highlightedReviewId === review.id ? 'bg-yellow-100 rounded-md p-4 shadow' : ''
+                        key={review._id}
+                        id={`review-${review._id}`}
+                        className={`scroll-mt-[120px] border-b border-gray-100 last:border-b-0 transition-all duration-300 ${
+                          highlightedReviewId === review._id ? 'bg-yellow-100 rounded-md py-6 shadow' : ''
                         }`}
                       >
-                        <div className="flex justify-between mb-2">
-                          <h4 className="font-medium">{review.author}</h4>
-                          <span className="text-sm text-gray-500">{review.date}</span>
+                        <div className="relative z-10">
+                          <div className="flex justify-between mb-2">
+                            <h4 className="font-medium">{review.author}</h4>
+                            <span className="text-sm text-gray-500">{review.date}</span>
+                          </div>
+                          <div className="flex mb-2">
+                            {renderStars(review.rating)}
+                          </div>
+                          <p className="text-gray-600 py-4">{review.text}</p>
+                          </div>
                         </div>
-                        <div className="flex mb-2">
-                          {renderStars(review.rating)}
-                        </div>
-                        <p className="text-gray-600">{review.text}</p>
-                      </div>
+                      
                     ))}
                   </div>
                 )}
