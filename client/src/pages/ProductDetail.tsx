@@ -50,13 +50,12 @@ const ProductDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth(); // Will be null if not logged in
 
-
   const { data: product, isLoading, error, refetch } = useQuery({
-    queryKey: ['product-detail', id],
+    queryKey: ['/api/products', id],
     queryFn: async () => {
       if (!id) throw new Error("Missing product ID");
       const res = await fetch(`/api/products/${id}`);
-      await refetch().then(() => console.log("🔁 Product data reloaded"));
+      // await refetch().then(() => console.log("🔁 Product data reloaded"));
 
       if (!res.ok) throw new Error("Failed to fetch product");
       return res.json();
@@ -142,6 +141,15 @@ const ProductDetail = () => {
   };
 
   if (isLoading) return <div className="container mx-auto py-16 text-center">Loading...</div>;
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex justify-center items-center h-screen text-gray-500">
+  //       <Loader2 className="h-8 w-8 mr-2 animate-spin" />
+  //       Loading product...
+  //     </div>
+  //   );
+  // }
+
   if (error || !product) return (
     <div className="container mx-auto px-4 py-16 text-center">
       <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
