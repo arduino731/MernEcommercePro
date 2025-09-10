@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { log } from './vite';
+import dotenv from 'dotenv';
+dotenv.config();
 
 let mongoServer: MongoMemoryServer;
 
@@ -8,8 +10,8 @@ let mongoServer: MongoMemoryServer;
 export const connectToDatabase = async (): Promise<void> => {
   try {
     // Check for MongoDB connection string, prioritize dedicated MONGODB_URI
-    const connectionString = process.env.MONGODB_URI || process.env.DATABASE_URL || "mongodb://localhost:27017/test";
-    console.log("📦 ENV MONGODB_URI:", process.env.MONGODB_URI);
+    const connectionString = process.env.MONGODB_URI || process.env.DATABASE_URL;
+    // console.log("📦 ENV MONGODB_URI:", process.env.MONGODB_URI);
 
     if (connectionString) {
       // Connect to MongoDB Atlas or external MongoDB

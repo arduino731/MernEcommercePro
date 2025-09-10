@@ -1,10 +1,7 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import { ReviewModel } from '@shared/models';
 
 dotenv.config();
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://arduino731:2xc6wxf0WuXJJGte@mernEcommercePro.vm4lldi.mongodb.net/test?retryWrites=true&w=majority&appName=mernEcommercePro';
 
 const reviews = [
   {
