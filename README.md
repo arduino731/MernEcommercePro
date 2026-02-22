@@ -1,5 +1,7 @@
 # E-Commerce Platform (MERN Stack)
 
+
+
 A modern full-stack e-commerce web application built using the MERN stack (MongoDB, Express, React, Node.js). This platform allows users to browse products, leave reviews, manage a cart, and securely handle authentication. Built with TypeScript and designed to offer a smooth shopping experience with mobile-friendly responsiveness.
 
 ## Features

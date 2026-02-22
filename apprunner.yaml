@@ -1,0 +1,12 @@
+version: 1.0
+runtime: DOCKER
+build:
+  # This tells AWS which Dockerfile to use
+  dockerfile: Dockerfile.backend 
+run:
+  network:
+    port: 5000
+  # If you have environment variables (like MongoDB URL), add them here
+  env:
+    - name: NODE_ENV
+      value: production
