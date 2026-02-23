@@ -8,10 +8,12 @@ RUN npm install
 # Copy all source code
 COPY . .
 
-# Build the project (This runs esbuild per your package.json)
+# Run the build
 RUN npm run build
 
+# EXPOSE port 5000
 EXPOSE 5000
 
-# FIX: Use the compiled JavaScript file in dist/
-CMD ["node", "dist/index.js"]
+# NEW START COMMAND: We use a wildcard to find the generated index.js
+# This accounts for esbuild nested folder structures
+CMD ["sh", "-c", "node $(find dist -name index.js | head -n 1)"]

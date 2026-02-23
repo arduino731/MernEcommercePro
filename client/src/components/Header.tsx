@@ -64,7 +64,8 @@ const Header = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link href="/" className="flex items-center">
+              <Link href="/" className="flex items-center gap-2">
+                <img src="/logo.png" alt="ShopMERN Logo" className="h-8 w-8 object-contain" />
                 <span className="text-primary text-xl font-bold">ShopMERN</span>
               </Link>
               <nav className="hidden md:ml-10 md:flex space-x-8">
