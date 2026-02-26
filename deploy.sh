@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # 1. Variables (Update these if they change)
-
+AWS_ACCOUNT_ID="339713165006"
+REGION="us-east-1"
 ECR_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
 echo "🚀 Starting Deployment Process..."
