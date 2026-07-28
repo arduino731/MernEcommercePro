@@ -51,7 +51,7 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  const port = 5000;
+  const port = Number(process.env.PORT) || 3001;
   server.listen(port, "0.0.0.0", () => {
     console.log(`🚀 Serving full stack app on http://localhost:${port}`);
   });
